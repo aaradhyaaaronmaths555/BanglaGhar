@@ -28,6 +28,7 @@ const User = require("./models/User");
 // 5) PROPERTY MODEL
 const Property = require("./models/Property");
 
+
 // 6) TEST ROUTE
 app.get("/", (req, res) => {
   res.send("Hello from the backend server! MongoDB connection is active.");
@@ -267,6 +268,16 @@ app.delete("/api/users/:username/wishlist", async (req, res) => {
     res.status(500).json({ error: "Server error removing property from wishlist" });
   }
 });
+
+// Remove the curly braces since you're exporting directly
+const generatePropertyDescription = require("./propertydesc");
+
+app.post("/api/generate-description", generatePropertyDescription);
+
+
+
+
+
 
 // 9) START THE SERVER
 const PORT = process.env.PORT || 5001;
