@@ -9,6 +9,9 @@ const openai = new OpenAI({
 const generatePropertyDescription = async (req, res) => {
     try {
         const property = req.body.propertyData;
+
+        // Log the received property data for debugging
+        console.log("Received property data:", JSON.stringify(property, null, 2));
         
         const prompt = `You are a professional real estate agent. Generate a compelling 150-200 word description for a commercial property with these details:
         
@@ -16,25 +19,26 @@ const generatePropertyDescription = async (req, res) => {
         Property Type: ${property.propertyType}
         Listing Type: For ${property.listingType}
         Price: ${property.price} BDT
-        Location: ${property.address}, ${property.city}, ${property.state}
+        Location: ${property.address}, ${property.city}, ${property.division} ${property.postcode}
         Size: ${property.area} square feet
+        Street Width: ${property.streetWidth} feet (${property.streetWidthComment || "No additional comments"})
         Bedrooms: ${property.bedrooms}
         Bathrooms: ${property.bathrooms}
+        Fresh Water Supply: ${property.freshWaterSupply} hours per day (${property.freshWaterSupplyComment || "No additional comments"})
+        Gas Supply: ${property.gasSupply} (${property.gasSupplyComment || "No additional comments"})
+        Lift Availability: ${property.hasLift ? "Yes" : "No"} (${property.hasLiftComment || "No additional comments"})
         
         Key Features:
-        ${property.features.parking ? "- Ample parking space" : ""}
-        ${property.features.garden ? "- Beautiful garden area" : ""}
-        ${property.features.airConditioning ? "- Fully air-conditioned" : ""}
-        ${property.features.furnished ? "- Fully furnished" : ""}
-        ${property.features.pool ? "- Swimming pool" : ""}
+        ${property.features.parking ? `- Parking: ${property.features.parkingComment || "No additional comments"}` : ""}
+        ${property.features.garden ? `- Garden: ${property.features.gardenComment || "No additional comments"}` : ""}
+        ${property.features.airConditioning ? `- Air Conditioning: ${property.features.airConditioningComment || "No additional comments"}` : ""}
+        ${property.features.furnished ? `- Furnished: ${property.features.furnishedComment || "No additional comments"}` : ""}
+        ${property.features.pool ? `- Swimming Pool: ${property.features.poolComment || "No additional comments"}` : ""}
         
         Nearby Amenities:
-        ${property.nearbyAmenities.institutions === "Yes" ? "- Close to institutions" : ""}
-        ${property.nearbyAmenities.hospital === "Yes" ? "- Nearby hospital" : ""}
-        ${property.nearbyAmenities.market === "Yes" ? "- Nearby market" : ""}
-        ${property.nearbyAmenities.park === "Yes" ? "- Nearby park" : ""}
-        
-        Additional Keywords: ${property.descriptionKeywords || "None"}
+        ${property.nearbyAmenities.educationalInstitutions === "Yes" ? `- Educational Institutions: ${property.nearbyAmenities.educationalInstitutionsComment || "No additional comments"}` : ""}
+        ${property.nearbyAmenities.hospital === "Yes" ? `- Hospital: ${property.nearbyAmenities.hospitalComment || "No additional comments"}` : ""}
+        ${property.nearbyAmenities.market === "Yes" ? `- Market: ${property.nearbyAmenities.marketComment || "No additional comments"}` : ""}
         
         Write an engaging description that highlights the property's best features, location advantages, and potential uses. Use persuasive language suitable for a high-value commercial property listing. Mention any unique selling points and the business potential of the location.`;
 
@@ -48,6 +52,7 @@ const generatePropertyDescription = async (req, res) => {
 
         res.json({ description: completion.choices[0].message.content });
     } catch (error) {
+        console.error("Error generating property description:", error.message);
         res.status(500).json({ error: "Failed to generate property description", details: error.message });
     }
 };
