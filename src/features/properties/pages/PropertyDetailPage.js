@@ -47,6 +47,8 @@ import DeckIcon from "@mui/icons-material/Deck"; // Furnished status
 import PoolIcon from "@mui/icons-material/Pool"; // Pool
 import ElevatorIcon from "@mui/icons-material/Elevator"; // Lift (Example)
 
+import ChatBox from "../../chat/components/ChatBox";
+
 import axios from "axios";
 import { useAuth } from "../../../context/AuthContext"; // Adjust path if needed
 import useWishlist from "./../hooks/useWishlist"; // Adjust path if needed
@@ -54,7 +56,7 @@ import useWishlist from "./../hooks/useWishlist"; // Adjust path if needed
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 
-// Helper to format price
+  // Helper to format price
 const formatDisplayPrice = (price, listingType) => {
   if (price === null || price === undefined) return "N/A";
   const numericPrice = Number(price);
@@ -112,6 +114,7 @@ const PropertyDetailPage = () => {
   const { propertyId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [chatOpen, setChatOpen] = useState(false);
   const { wishlistIds, toggleWishlist, loadingWishlist } = useWishlist();
 
   const [property, setProperty] = useState(null);
@@ -613,14 +616,17 @@ const PropertyDetailPage = () => {
               {/* Contact Owner section */}
               <Box sx={{ mt: "auto", pt: 2 }}>
                 <Divider sx={{ mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Contact Owner/Agent
-                </Typography>
+                <Button variant="contained" fullWidth onClick={() => setChatOpen(true)}>
+                  Contact Advertiser
+                </Button>
+                &nbsp;
                 {/* TODO: Add actual contact display/button logic */}
                 <Button variant="contained" fullWidth>
                   Show Contact Info
                 </Button>
               </Box>
+              <ChatBox open={chatOpen} onClose={() => setChatOpen(false)} chatId={property._id}/>
+
             </Box>
           </Grid>
         </Grid>
