@@ -13,6 +13,7 @@ const API_BASE_URL =
 
 // Define steps - Updated 7-Step Workflow
 const steps = [
+  "Owner Info",
   "Basic Info",
   "Location",
   "Features",
@@ -24,6 +25,8 @@ const steps = [
 
 // --- Initial Form State ---
 const initialFormData = {
+  advertiserName: "",
+  advertiserPhone: "",
   title: "",
   propertyType: "apartment",
   listingType: "rent",
@@ -165,6 +168,10 @@ const useListingForm = () => {
 
       switch (i) {
         case 0:
+          if (!data.advertiserName.trim()) errs.advertiserName = "Required";
+          if (!data.advertiserPhone.trim()) errs.advertiserPhone = "Required";
+          break;
+        case 1:
           if (!data.title.trim()) errs.title = "Required";
           if (!data.propertyType) errs.propertyType = "Required";
           if (!data.listingType) errs.listingType = "Required";
@@ -172,14 +179,14 @@ const useListingForm = () => {
           if (needBB && reqPos(data.bedrooms)) errs.bedrooms = "Invalid";
           if (needBB && reqPos(data.bathrooms)) errs.bathrooms = "Invalid";
           break;
-        case 1:
+        case 2:
           if (!data.addressLine1.trim()) errs.addressLine1 = "Required";
           if (!data.cityTown.trim()) errs.cityTown = "Required";
           if (!data.upazila.trim()) errs.upazila = "Required";
           if (!data.district.trim()) errs.district = "Required";
           if (!data.postalCode.trim()) errs.postalCode = "Required";
           break;
-        case 3:
+        case 4:
           errs.bangladeshDetails = {};
           if (!bd.propertyCondition)
             errs.bangladeshDetails.propertyCondition = "Required";
@@ -203,6 +210,10 @@ const useListingForm = () => {
     try {
       const payload = {
         propertyData: {
+          ownerInfo: {
+            name: formData.advertiserName,
+            phoneNumber: formData.advertiserPhone,
+          },
           basicInfo: {
             title: formData.title,
             propertyType: formData.propertyType,
@@ -312,6 +323,10 @@ const useListingForm = () => {
     const randImg = predefined[Math.floor(Math.random() * predefined.length)];
     const finalData = {
       ...formData,
+      ownerInfo: {
+        name: formData.advertiserName,
+        phoneNumber: formData.advertiserPhone,
+      },
       features:
         formData.propertyType !== "land" &&
         formData.propertyType !== "commercial"

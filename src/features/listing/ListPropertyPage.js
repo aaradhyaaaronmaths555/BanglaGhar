@@ -30,6 +30,7 @@ import Step_Bangladesh_Details from "./components/Step_Bangladesh_Details";
 import Step4_Images from "./components/Step4_Images";
 import Step_Description from "./components/Step_Description";
 import Step5_Review from "./components/Step5_Review";
+import Step_OwnerInfo from "./components/Step_OwnerInfo";
 
 // Styled components (keep as is)
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -90,7 +91,15 @@ const ListPropertyPage = () => {
     }
 
     switch (step) {
-      case 0: // Basic Info
+      case 0: // Owner Info
+        return (
+          <Step_OwnerInfo
+            formData={formData}
+            errors={errors}
+            handleChange={handleChange}
+          />
+        );
+      case 1: // Basic Info
         return (
           <Step1_Details
             formData={formData}
@@ -98,7 +107,7 @@ const ListPropertyPage = () => {
             handleChange={handleChange}
           />
         );
-      case 1: // Location
+      case 2: // Location
         return (
           <Step2_Location
             formData={formData}
@@ -106,7 +115,7 @@ const ListPropertyPage = () => {
             handleChange={handleChange}
           />
         );
-      case 2: // Features (Standard)
+      case 3: // Features (Standard)
         return (
           <Step3_Features
             features={features}
@@ -114,7 +123,7 @@ const ListPropertyPage = () => {
             formData={formData}
           />
         );
-      case 3: // Specific Details (BD Context)
+      case 4: // Specific Details (BD Context)
         return (
           <Step_Bangladesh_Details
             formData={formData}
@@ -122,7 +131,7 @@ const ListPropertyPage = () => {
             handleChange={handleChange}
           />
         );
-      case 4: // Upload Photos
+      case 5: // Upload Photos
         return (
           <Step4_Images
             images={images}
@@ -131,7 +140,7 @@ const ListPropertyPage = () => {
             errors={errors}
           />
         );
-      case 5: // Description
+      case 6: // Description
         return (
           <Step_Description
             formData={formData}
@@ -141,7 +150,7 @@ const ListPropertyPage = () => {
             loadingAI={loadingAI}
           />
         );
-      case 6: // Review
+      case 7: // Review
         return (
           <Step5_Review
             formData={formData}

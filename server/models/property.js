@@ -100,7 +100,10 @@ const propertySchema = new mongoose.Schema(
       nearbyDevelopments: { type: String },
       reasonForSelling: { type: String },
     },
-
+    ownerInfo: {
+      name: { type: String, required: true },
+      phoneNumber: { type: String, required: true },
+    },
     isHidden: {
       type: Boolean,
       default: false, // Listings are visible by default

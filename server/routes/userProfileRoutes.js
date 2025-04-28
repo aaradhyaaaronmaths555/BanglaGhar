@@ -6,6 +6,7 @@ const fs = require("fs"); // Needed for directory creation
 const multer = require("multer"); // Import multer
 const userProfileController = require("../controllers/userProfileController");
 const authMiddleware = require("../middleware/authMiddleware");
+const otpController = require("../controllers/otpController");
 
 // --- Multer Configuration ---
 const UPLOAD_DIR = path.resolve(__dirname, "../uploads/govt_ids"); // Absolute path
@@ -69,6 +70,12 @@ router.post(
   upload.single("govtId"), // 'govtId' must match the name attribute of your file input field in the frontend form
   userProfileController.uploadGovtId
 );
+
+// Route to send OTP
+router.post("/send-otp", otpController.sendOtp);
+
+// Route to validate OTP
+router.post("/validate-otp", otpController.validateOtp);
 
 // --- Multer Error Handling Middleware ---
 // This should be placed after routes that use multer

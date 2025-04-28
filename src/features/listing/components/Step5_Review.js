@@ -64,6 +64,35 @@ const Step5_Review = ({ formData, features, images }) => {
         sx={{ p: 3, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 2 }}
       >
         <Grid container spacing={3} rowSpacing={2}>
+          {/* --- Section 0: Owner Info --- */}
+          <Grid item xs={12} md={6}>
+            <Typography
+              variant="subtitle1"
+              gutterBottom
+              sx={{ fontWeight: "bold" }}
+            >
+              {t("owner_info", "Owner Info")}
+            </Typography>
+            <List dense disablePadding>
+              <ListItem disableGutters>
+                <ListItemText
+                  primary={t("advertiser_name", "Advertiser Name")}
+                  secondary={formatValue(formData.advertiserName, t)}
+                />
+              </ListItem>
+              <ListItem disableGutters>
+                <ListItemText
+                  primary={t("advertiser_phone", "Advertiser Phone")}
+                  secondary={formatValue(formData.advertiserPhone, t)}
+                />
+              </ListItem>
+            </List>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Divider sx={{ my: 1 }} />
+          </Grid>
+
           {/* --- Section 1: Basic Info & Location --- */}
           <Grid item xs={12} md={6}>
             <Typography

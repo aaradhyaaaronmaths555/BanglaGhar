@@ -4,24 +4,29 @@ const mongoose = require("mongoose"); // Ensure mongoose is required if not alre
 
 // Example for Create Property (remains the same):
 exports.createProperty = async (req, res) => {
-  // ... (existing code) ...
   try {
-    const newProperty = new Property({
-      ...req.body,
-      // Ensure createdBy is handled correctly, perhaps passed in req.body
-      // createdBy: req.user.id // Example if user info was available
-    });
-    await newProperty.save();
-    res.status(201).json(newProperty);
-  } catch (err) {
-    console.error("Create property error:", err); // Log error
-    // Provide more specific error messages if possible
-    if (err.name === "ValidationError") {
-      return res
-        .status(400)
-        .json({ error: "Validation failed", details: err.message });
+    const { title, price, addressLine1, cityTown, district, ownerInfo, ...rest } = req.body;
+
+    if (!ownerInfo || !ownerInfo.name || !ownerInfo.phoneNumber) {
+      return res.status(400).json({ error: "Owner info is required." });
     }
-    res.status(500).json({ error: "Server error creating property" });
+
+    const newProperty = new Property({
+      title,
+      price,
+      addressLine1,
+      cityTown,
+      district,
+      ownerInfo, // Include ownerInfo
+      ...rest,
+      createdBy: req.user.email, // Assuming req.user.email is set by authMiddleware
+    });
+
+    const savedProperty = await newProperty.save();
+    res.status(201).json(savedProperty);
+  } catch (error) {
+    console.error("Error creating property:", error);
+    res.status(500).json({ error: "Internal server error." });
   }
 };
 

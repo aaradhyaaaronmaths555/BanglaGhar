@@ -17,10 +17,10 @@ const checkListingApprovalMiddleware = require("../middleware/checkListingApprov
 // 3. Check req.userProfile.approvalStatus
 router.post(
   "/",
-  authMiddleware, // #1 Authenticate
-  fetchUserProfileMiddleware, // #2 Fetch Profile
-  checkListingApprovalMiddleware, // #3 Check Approval Status
-  propertyController.createProperty // #4 If all pass, proceed to controller
+  authMiddleware,
+  fetchUserProfileMiddleware,
+  checkListingApprovalMiddleware,
+  propertyController.createProperty // Ensure ownerInfo is handled in the controller
 );
 
 // Public routes
