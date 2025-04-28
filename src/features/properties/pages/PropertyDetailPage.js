@@ -20,6 +20,11 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  DialogActions,
 } from "@mui/material";
 // Existing Icons
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -126,6 +131,10 @@ const PropertyDetailPage = () => {
     severity: "info",
   });
 
+  // Contact dialog state
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [userDetails, setUserDetails] = useState({ name: "", phone: "" });
+
   // Fetching Logic
   const fetchPropertyDetails = useCallback(async () => {
     if (!propertyId) {
@@ -166,6 +175,31 @@ const PropertyDetailPage = () => {
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
+  const handleContactDialogOpen = () => {
+    setContactDialogOpen(true);
+    setUserDetails({ name: "", phone: "" });
+  };
+
+  const handleContactDialogClose = () => {
+    setContactDialogOpen(false);
+  };
+
+  const handleSendOtp = async () => {
+    try {
+      if (!userDetails.name || !userDetails.phone) {
+        alert("Name and phone number are required.");
+        return;
+      }
+      const response = await axios.post("/api/user-profiles/send-otp", {
+        mobileNumber: userDetails.phone,
+      });
+      alert("OTP sent successfully!");
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      alert("Failed to send OTP. Please try again.");
+    }
   };
 
   // --- Render Logic ---
@@ -621,9 +655,41 @@ const PropertyDetailPage = () => {
                 </Button>
                 &nbsp;
                 {/* TODO: Add actual contact display/button logic */}
-                <Button variant="contained" fullWidth>
+                <Button variant="contained" fullWidth onClick={handleContactDialogOpen}>
                   Show Contact Info
                 </Button>
+
+                <Dialog open={contactDialogOpen} onClose={handleContactDialogClose}>
+                  <DialogTitle>Enter Your Details</DialogTitle>
+                  <DialogContent>
+                    <TextField
+                      label="Name"
+                      fullWidth
+                      margin="normal"
+                      value={userDetails.name}
+                      onChange={(e) =>
+                        setUserDetails({ ...userDetails, name: e.target.value })
+                      }
+                    />
+                    <TextField
+                      label="Phone Number"
+                      fullWidth
+                      margin="normal"
+                      value={userDetails.phone}
+                      onChange={(e) =>
+                        setUserDetails({ ...userDetails, phone: e.target.value })
+                      }
+                    />
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={handleContactDialogClose} variant="outlined">
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSendOtp} variant="contained">
+                      Send OTP
+                    </Button>
+                  </DialogActions>
+                </Dialog>
               </Box>
               <ChatBox open={chatOpen} onClose={() => setChatOpen(false)} chatId={property._id}/>
 
