@@ -691,7 +691,12 @@ const PropertyDetailPage = () => {
                   </DialogActions>
                 </Dialog>
               </Box>
-              <ChatBox open={chatOpen} onClose={() => setChatOpen(false)} chatId={property._id}/>
+              <ChatBox
+                open={chatOpen}
+                onClose={() => setChatOpen(false)}
+                chatId={property._id}
+                ownerName={property.ownerInfo?.name || "Owner"}
+              />
 
             </Box>
           </Grid>

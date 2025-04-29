@@ -70,8 +70,44 @@ app.get("/", (req, res) => {
   res.send("Hello from the backend server! MongoDB connection is active.");
 });
 
+// Import socket.io
+const http = require("http");
+const { Server } = require("socket.io");
+
+// Create an HTTP server and attach socket.io
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Adjust this to your frontend's URL in production
+    methods: ["GET", "POST"]
+  }
+});
+
+// WebSocket event handling
+io.on("connection", (socket) => {
+  console.log("A user connected: " + socket.id);
+
+  // Handle incoming messages
+  socket.on("sendMessage", (data) => {
+    console.log("Message received: ", data);
+    // Broadcast the message to all clients in the room except the sender
+    socket.to(data.room).emit("receiveMessage", data);
+  });
+
+  // Join a chat room
+  socket.on("joinRoom", (room) => {
+    socket.join(room);
+    console.log(`User ${socket.id} joined room ${room}`);
+  });
+
+  // Handle disconnection
+  socket.on("disconnect", () => {
+    console.log("A user disconnected: " + socket.id);
+  });
+});
+
 // 7) Start Server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
