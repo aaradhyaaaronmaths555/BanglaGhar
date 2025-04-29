@@ -176,6 +176,21 @@ const FilterSidebar = ({
         </Select>
       </FormControl>
       <Divider sx={{ my: 2 }} />
+      {/* Lift Filter */}
+      <FormControl fullWidth variant="outlined" size="small" sx={{ mb: 2 }}>
+        <InputLabel id="lift-label">{t("lift")}</InputLabel>
+        <Select
+          labelId="lift-label"
+          name="lift"
+          value={filters.lift || "any"}
+          label={t("lift")}
+          onChange={handleSelectChange}
+        >
+          <MenuItem value="any">{t("any")}</MenuItem>
+          <MenuItem value="yes">{t("yes")}</MenuItem>
+          <MenuItem value="no">{t("no")}</MenuItem>
+        </Select>
+      </FormControl>
 
       {/* Property Type */}
       <FormControl fullWidth variant="outlined" size="small" sx={{ mb: 3 }}>

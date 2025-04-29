@@ -13,6 +13,7 @@ const initialFilters = {
   bedrooms: "any",
   bathrooms: "any",
   propertyType: "any",
+  lift: "any",
 };
 
 // --- Updated Fuse.js options ---
@@ -163,7 +164,12 @@ const usePropertyFilters = (mode) => {
         (p.propertyType &&
           p.propertyType.toLowerCase() === filters.propertyType.toLowerCase());
 
-      return priceMatch && bedMatch && bathMatch && typeMatch;
+      const liftMatch =
+        filters.lift === "any" ||
+        (filters.lift === "yes" && p.hasLift === true) ||
+        (filters.lift === "no" && p.hasLift === false);
+
+      return priceMatch && bedMatch && bathMatch && typeMatch && liftMatch;
     });
 
     // 2. Apply Fuzzy Search if term exists

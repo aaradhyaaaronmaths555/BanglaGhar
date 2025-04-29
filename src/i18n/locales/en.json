@@ -187,5 +187,6 @@
   "verify_otp": "Verify OTP",
   "enter_otp": "Enter OTP",
   "otp_sent_to": "An OTP has been sent to {{email}}. Please enter it below.",
-  "otp_success": "Email verified successfully! Redirecting to login..."
+  "otp_success": "Email verified successfully! Redirecting to login...",
+  "lift": "Lift"
 }
