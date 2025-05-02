@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -19,34 +19,72 @@ import MapPopup from "./MapPopup";
 // The LayersControl allows users to switch between different map styles
 const { BaseLayer } = LayersControl;
 
-// Custom hook to update map view when center or zoom changes
+/**
+ * Custom hook to update map view when center or zoom changes
+ * Enhanced with better handling of position changes
+ */
 function ChangeView({ center, zoom }) {
   const map = useMap();
+  const previousCenter = useRef(center);
+  const previousZoom = useRef(zoom);
+  const isAnimating = useRef(false);
+  
   useEffect(() => {
+    // Validate center and zoom
     if (
-      Array.isArray(center) &&
-      center.length === 2 &&
-      typeof center[0] === "number" &&
-      typeof center[1] === "number" &&
-      typeof zoom === "number"
+      !Array.isArray(center) ||
+      center.length !== 2 ||
+      typeof center[0] !== "number" ||
+      typeof center[1] !== "number" ||
+      typeof zoom !== "number"
     ) {
-      map.setView(center, zoom);
+      console.warn("Invalid map center or zoom:", { center, zoom });
+      return;
+    }
+    
+    // Fix center coordinates to 6 decimal places for consistency
+    const fixedCenter = [
+      parseFloat(center[0].toFixed(6)),
+      parseFloat(center[1].toFixed(6))
+    ];
+    
+    // Check if center or zoom has actually changed significantly
+    const centerChanged = 
+      Math.abs(previousCenter.current[0] - fixedCenter[0]) > 0.000001 || 
+      Math.abs(previousCenter.current[1] - fixedCenter[1]) > 0.000001;
+    
+    const zoomChanged = previousZoom.current !== zoom;
+    
+    // Only update if there's a meaningful change and not already animating
+    if ((centerChanged || zoomChanged) && !isAnimating.current) {
+      console.log(`Setting map view to center: [${fixedCenter}], zoom: ${zoom}`);
+      
+      // Prevent multiple animations at once
+      isAnimating.current = true;
+      
+      // Use flyTo for smoother transitions
+      map.flyTo(fixedCenter, zoom, {
+        animate: true,
+        duration: 0.75 // seconds
+      });
+      
+      // Update previous values
+      previousCenter.current = fixedCenter;
+      previousZoom.current = zoom;
+      
+      // Reset animation flag when done
+      setTimeout(() => {
+        isAnimating.current = false;
+      }, 800); // slightly longer than animation duration
     }
   }, [center, zoom, map]);
+  
   return null;
 }
 
 /**
  * MapComponent - The main map component responsible for rendering the map and its elements
- * 
- * @param {Array} properties - Array of property objects to display on the map
- * @param {Array} mapCenter - [lat, lng] coordinates for the map center
- * @param {Number} mapZoom - Zoom level for the map
- * @param {Array} userLocation - [lat, lng] coordinates of the user's location
- * @param {Object} selectedProperty - The currently selected property object
- * @param {Function} onMarkerClick - Callback function when a marker is clicked
- * @param {Function} onMapMove - Callback function when the map is moved or zoomed
- * @param {Boolean} loading - Whether map data is currently loading
+ * Enhanced with better stability for property positions
  */
 const MapComponent = ({
   properties,
@@ -60,35 +98,116 @@ const MapComponent = ({
 }) => {
   const { t } = useTranslation();
   const mapRef = useRef();
+  
+  // Extract selected property ID for stable comparisons
+  const selectedPropertyId = selectedProperty?._id;
 
-  // Default center if not provided
+  // Default center and zoom with fallbacks
   const defaultCenter = [23.8103, 90.4125]; // Dhaka coordinates
   const defaultZoom = 7;
+  
+  // Normalize center coordinates to prevent position drift
+  const normalizedCenter = useMemo(() => {
+    if (!Array.isArray(mapCenter) || mapCenter.length !== 2) {
+      return defaultCenter;
+    }
+    
+    if (typeof mapCenter[0] !== "number" || typeof mapCenter[1] !== "number") {
+      return defaultCenter;
+    }
+    
+    // Fix to 6 decimal places for consistency
+    return [
+      parseFloat(mapCenter[0].toFixed(6)),
+      parseFloat(mapCenter[1].toFixed(6))
+    ];
+  }, [mapCenter]);
+  
+  // Normalize zoom level
+  const normalizedZoom = useMemo(() => {
+    return typeof mapZoom === "number" && !isNaN(mapZoom) 
+      ? Math.round(mapZoom) // Round to nearest integer to prevent float issues
+      : defaultZoom;
+  }, [mapZoom]);
+  
+  // Handle marker click with stable property references
+  const handleMarkerClick = useCallback((property) => {
+    if (!property || !onMarkerClick) return;
+    
+    // Create a stable copy of the property with normalized position
+    const stableProperty = {
+      ...property,
+      position: property.position 
+        ? { 
+            lat: parseFloat(property.position.lat.toFixed(6)), 
+            lng: parseFloat(property.position.lng.toFixed(6)) 
+          }
+        : property.position
+    };
+    
+    console.log("Marker clicked:", stableProperty._id, stableProperty.position);
+    onMarkerClick(stableProperty);
+  }, [onMarkerClick]);
 
-  // Handler for map move/zoom events
+  // Custom hook for map events that handles movement events
   const MapEvents = () => {
     const map = useMap();
+    const moveEndTimeout = useRef(null);
     
     useEffect(() => {
       if (!onMapMove) return;
 
       const handleMoveEnd = () => {
-        const center = map.getCenter();
-        const zoom = map.getZoom();
-        onMapMove([center.lat, center.lng], zoom);
+        // Clear any pending timeouts to debounce events
+        if (moveEndTimeout.current) {
+          clearTimeout(moveEndTimeout.current);
+        }
+        
+        // Set a new timeout to debounce rapid movements
+        moveEndTimeout.current = setTimeout(() => {
+          const center = map.getCenter();
+          const zoom = map.getZoom();
+          
+          // Normalize values to prevent floating point issues
+          const normalizedCenter = [
+            parseFloat(center.lat.toFixed(6)),
+            parseFloat(center.lng.toFixed(6))
+          ];
+          
+          console.log("Map moved to:", normalizedCenter, zoom);
+          onMapMove(normalizedCenter, zoom);
+        }, 300); // 300ms debounce
       };
 
       map.on("moveend", handleMoveEnd);
       map.on("zoomend", handleMoveEnd);
 
+      // Cleanup listeners and timeout on unmount
       return () => {
         map.off("moveend", handleMoveEnd);
         map.off("zoomend", handleMoveEnd);
+        
+        if (moveEndTimeout.current) {
+          clearTimeout(moveEndTimeout.current);
+        }
       };
-    }, [map]);
+    }, [map, onMapMove]);
     
     return null;
   };
+
+  // Prepare valid properties list
+  const validProperties = useMemo(() => {
+    if (!Array.isArray(properties)) return [];
+    
+    return properties.filter(property => 
+      property && 
+      property._id && 
+      property.position && 
+      typeof property.position.lat === "number" && 
+      typeof property.position.lng === "number"
+    );
+  }, [properties]);
 
   // Show loading indicator if data is loading
   if (loading) {
@@ -114,25 +233,17 @@ const MapComponent = ({
   return (
     <MapContainer
       ref={mapRef}
-      center={
-        Array.isArray(mapCenter) && mapCenter.length === 2
-          ? mapCenter
-          : defaultCenter
-      }
-      zoom={typeof mapZoom === "number" ? mapZoom : defaultZoom}
+      center={normalizedCenter}
+      zoom={normalizedZoom}
       scrollWheelZoom={true}
       style={{ height: "100%", width: "100%", borderRadius: "inherit" }}
       zoomControl={false} // We'll add our own zoom control in a better position
+      attributionControl={true}
+      doubleClickZoom={true}
+      closePopupOnClick={true}
     >
       {/* Update map view when center or zoom changes */}
-      <ChangeView 
-        center={
-          Array.isArray(mapCenter) && mapCenter.length === 2
-            ? mapCenter
-            : defaultCenter
-        } 
-        zoom={typeof mapZoom === "number" ? mapZoom : defaultZoom} 
-      />
+      <ChangeView center={normalizedCenter} zoom={normalizedZoom} />
       
       {/* Add zoom control in top-right instead of top-left */}
       <ZoomControl position="topright" />
@@ -166,7 +277,10 @@ const MapComponent = ({
         Array.isArray(userLocation) &&
         userLocation.length === 2 && (
           <CircleMarker
-            center={userLocation}
+            center={[
+              parseFloat(userLocation[0].toFixed(6)),
+              parseFloat(userLocation[1].toFixed(6))
+            ]}
             radius={8}
             pathOptions={{ 
               color: "#2196f3", 
@@ -182,31 +296,19 @@ const MapComponent = ({
         )}
 
       {/* Render Property Markers with Custom Components */}
-      {Array.isArray(properties) && properties.map((property) => {
-        if (!property || !property._id) return null;
-        
-        // Skip properties with invalid position data
-        if (
-          !property?.position ||
-          typeof property.position.lat !== "number" ||
-          typeof property.position.lng !== "number"
-        ) {
-          console.warn("Property has invalid position data:", property._id);
-          return null;
-        }
-        
-        const isSelected = selectedProperty && selectedProperty._id === property._id;
+      {validProperties.map((property) => {
+        const isSelected = selectedPropertyId === property._id;
         
         return (
           <MapMarker
             key={property._id}
             property={property}
             isSelected={isSelected}
-            onClick={onMarkerClick}
+            onClick={handleMarkerClick}
           >
             <MapPopup
               property={property}
-              onViewDetails={() => onMarkerClick(property)}
+              onViewDetails={handleMarkerClick}
             />
           </MapMarker>
         );

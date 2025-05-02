@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -9,6 +9,7 @@ import {
   IconButton,
   Drawer,
   Divider,
+  Snackbar,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
@@ -27,7 +28,60 @@ const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 
 /**
+ * Function to normalize position coordinates
+ */
+const normalizePosition = (position) => {
+  // Handle array format [lat, lng]
+  if (Array.isArray(position) && position.length === 2) {
+    if (typeof position[0] === 'number' && typeof position[1] === 'number') {
+      return [
+        parseFloat(position[0].toFixed(6)),
+        parseFloat(position[1].toFixed(6))
+      ];
+    }
+    return null;
+  }
+  
+  // Handle object format {lat, lng}
+  if (position && typeof position === 'object') {
+    if (typeof position.lat === 'number' && typeof position.lng === 'number') {
+      return {
+        lat: parseFloat(position.lat.toFixed(6)),
+        lng: parseFloat(position.lng.toFixed(6))
+      };
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Function to construct a complete address string from property fields
+ */
+const constructAddressString = (property) => {
+  if (!property) return "Location unavailable";
+  
+  // Use the location field if it exists
+  if (property.location) return property.location;
+  
+  // Otherwise construct from individual address components
+  const addressParts = [
+    property.addressLine1,
+    property.addressLine2,
+    property.upazila,
+    property.cityTown,
+    property.district,
+    property.postalCode,
+  ].filter(Boolean);
+  
+  return addressParts.length > 0 
+    ? addressParts.join(", ") 
+    : "Location details not available";
+};
+
+/**
  * MapPage Component - Fullscreen map view
+ * Enhanced with better address handling for properties
  */
 const MapPage = () => {
   const { propertyCode } = useParams();
@@ -48,6 +102,18 @@ const MapPage = () => {
     propertyType: "any",
   });
   
+  // State for notifications
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "info"
+  });
+  
+  // Refs for tracking state
+  const propertyPositionRef = useRef(null);
+  const propertyAddressRef = useRef(null);
+  const loadingPropertyRef = useRef(false);
+  
   // Use the map data hook
   const {
     properties,
@@ -61,64 +127,117 @@ const MapPage = () => {
     handleSelectProperty,
     clearSelectedProperty,
     handleMapMove,
+    fetchPropertyByCode,
   } = useMapData();
   
-  // Used to track if we've loaded a specific property
+  // Track if we've loaded a specific property
   const [specificPropertyLoaded, setSpecificPropertyLoaded] = useState(false);
+  
+  // Show notification helper
+  const showNotification = useCallback((message, severity = "info") => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
+  }, []);
+  
+  // Close notification handler
+  const handleCloseNotification = () => {
+    setNotification(prev => ({
+      ...prev,
+      open: false
+    }));
+  };
   
   // Fetch specific property if propertyCode is provided
   useEffect(() => {
-    if (propertyCode && !specificPropertyLoaded) {
+    if (propertyCode && !specificPropertyLoaded && !loadingPropertyRef.current) {
+      loadingPropertyRef.current = true;
+      
       const fetchProperty = async () => {
         try {
           const response = await axios.get(`${API_BASE_URL}/properties/${propertyCode}`);
           
           if (response.data) {
-            // Add position data if missing (you would normally have this from your backend)
-            if (!response.data.position) {
-              console.log("Property has no position data. Adding default position.");
-              // Generate a position near Dhaka for demo purposes
-              response.data.position = {
-                lat: 23.8103 + (Math.random() * 0.1 - 0.05),
-                lng: 90.4125 + (Math.random() * 0.1 - 0.05)
+            // Store original property data for reference
+            const property = response.data;
+            
+            // Construct and store the full address
+            const addressString = constructAddressString(property);
+            propertyAddressRef.current = addressString;
+            
+            // Log the address for debugging
+            console.log(`Property address: ${addressString}`);
+            
+            // Add position data if missing or invalid
+            let propertyWithPosition = { ...property };
+            
+            if (!propertyWithPosition.position || 
+                typeof propertyWithPosition.position.lat !== 'number' || 
+                typeof propertyWithPosition.position.lng !== 'number') {
+              
+              console.log("Property has no valid position data. Adding stable position.");
+              
+              // Generate a stable position for this property using its ID
+              const propertyId = propertyWithPosition._id || propertyCode;
+              
+              // Use a hash function to generate a stable number from the ID
+              const hashCode = (str) => {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                  const char = str.charCodeAt(i);
+                  hash = ((hash << 5) - hash) + char;
+                  hash = hash & hash; // Convert to 32bit integer
+                }
+                return hash;
+              };
+              
+              // Generate a stable position using the hash
+              const hash = hashCode(propertyId);
+              const lat = 23.8103 + (Math.abs(hash % 1000) / 10000);
+              const lng = 90.4125 + (Math.abs((hash >> 10) % 1000) / 10000);
+              
+              propertyWithPosition.position = {
+                lat,
+                lng
               };
             }
             
+            // Normalize position coordinates
+            const stablePosition = normalizePosition(propertyWithPosition.position);
+            
+            // Store property position for future reference
+            propertyPositionRef.current = stablePosition;
+            
+            // Add address and position to the property
+            const enhancedProperty = {
+              ...propertyWithPosition,
+              address: addressString, // Add the full address string
+              position: stablePosition // Use normalized position
+            };
+            
+            console.log(`Property loaded: ${propertyCode}, position: ${JSON.stringify(stablePosition)}`);
+            
             // Select the property
-            handleSelectProperty(response.data);
+            handleSelectProperty(enhancedProperty);
             setSpecificPropertyLoaded(true);
+            
+            showNotification(`Property '${enhancedProperty.title || "Unnamed Property"}' loaded`, "success");
+          } else {
+            showNotification(`Property with ID ${propertyCode} not found`, "error");
           }
         } catch (err) {
           console.error("Error fetching property:", err);
+          showNotification(`Error loading property: ${err.message}`, "error");
+        } finally {
+          loadingPropertyRef.current = false;
         }
       };
       
       fetchProperty();
-    } else if (!propertyCode) {
-      // If no propertyCode, fetch properties based on filters
-      // This would normally be handled in your useMapData hook
-      
-      // Add position data to properties if missing - for demo purposes
-      if (properties.length > 0) {
-        const propertiesWithPositions = properties.map((property, index) => {
-          if (!property.position) {
-            // Add a position near Dhaka
-            return {
-              ...property,
-              position: {
-                lat: 23.8103 + (Math.floor(index / 5) * 0.01),
-                lng: 90.4125 + ((index % 5) * 0.01)
-              }
-            };
-          }
-          return property;
-        });
-        
-        // Log for debugging
-        console.log(`Added positions to ${propertiesWithPositions.length} properties`);
-      }
     }
-  }, [propertyCode, handleSelectProperty, properties, specificPropertyLoaded]);
+  }, [propertyCode, handleSelectProperty, specificPropertyLoaded, showNotification]);
   
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
@@ -133,6 +252,7 @@ const MapPage = () => {
       bathrooms: "any",
       propertyType: "any",
     });
+    showNotification("Filters reset", "info");
   };
   
   // Close filter drawer
@@ -143,6 +263,42 @@ const MapPage = () => {
   // Back button handler
   const handleBack = () => {
     navigate(-1);
+  };
+  
+  // Handle property selection with address handling
+  const onPropertySelect = useCallback((property) => {
+    if (!property) return;
+    
+    // Add address to property if not already present
+    let enhancedProperty = { ...property };
+    
+    if (!enhancedProperty.address) {
+      enhancedProperty.address = constructAddressString(property);
+    }
+    
+    // Use the hook's handler with the enhanced property
+    handleSelectProperty(enhancedProperty);
+    
+    // Update position reference
+    if (property && property.position) {
+      propertyPositionRef.current = normalizePosition(property.position);
+    }
+    
+    // Update address reference
+    propertyAddressRef.current = enhancedProperty.address;
+    
+    console.log(`Selected property: ${property?._id}, address: ${enhancedProperty.address}`);
+  }, [handleSelectProperty]);
+  
+  // Locate user handler with error handling
+  const handleLocateUser = () => {
+    try {
+      locateUser();
+      showNotification("Finding your location...", "info");
+    } catch (err) {
+      console.error("Error locating user:", err);
+      showNotification("Failed to get your location", "error");
+    }
   };
 
   return (
@@ -184,6 +340,12 @@ const MapPage = () => {
           </Typography>
         )}
         
+        {propertyCode && (
+          <Typography variant="subtitle1" sx={{ fontWeight: "medium", maxWidth: "250px", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+            {propertyAddressRef.current}
+          </Typography>
+        )}
+        
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
             startIcon={<FilterListIcon />}
@@ -196,7 +358,7 @@ const MapPage = () => {
           
           <Button
             startIcon={<MyLocationIcon />}
-            onClick={locateUser}
+            onClick={handleLocateUser}
             variant="contained"
             size="small"
           >
@@ -218,6 +380,7 @@ const MapPage = () => {
             width: "90%",
             maxWidth: "600px"
           }}
+          onClose={() => clearSelectedProperty()}
         >
           {error}
         </Alert>
@@ -245,15 +408,13 @@ const MapPage = () => {
             mapZoom={mapZoom}
             userLocation={userLocation}
             selectedProperty={selectedProperty}
-            onMarkerClick={handleSelectProperty}
+            onMarkerClick={onPropertySelect}
             onMapMove={handleMapMove}
           />
         )}
         
         {/* Selected property info panel */}
-        {selectedProperty && (
-          <PropertyInfoPanel selectedProperty={selectedProperty} />
-        )}
+        {selectedProperty && <PropertyInfoPanel selectedProperty={selectedProperty} />}
       </Box>
       
       {/* Filters Drawer */}
@@ -281,6 +442,15 @@ const MapPage = () => {
           />
         </Box>
       </Drawer>
+      
+      {/* Notifications */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={handleCloseNotification}
+        message={notification.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };
