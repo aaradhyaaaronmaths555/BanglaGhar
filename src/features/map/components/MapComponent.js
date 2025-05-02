@@ -2,23 +2,22 @@ import React, { useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
-  Marker,
-  Popup,
   useMap,
   CircleMarker,
   Tooltip,
+  ZoomControl,
+  LayersControl,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { useTranslation } from "react-i18next"; // Import useTranslation
+import { useTranslation } from "react-i18next";
+import { Box, CircularProgress, Typography } from "@mui/material";
 
-// Fix for default Leaflet marker icon issue with webpack
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
-  iconUrl: require("leaflet/dist/images/marker-icon.png"),
-  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
-});
+// Import custom components
+import MapMarker from "./MapMarker";
+import MapPopup from "./MapPopup";
+
+// The LayersControl allows users to switch between different map styles
+const { BaseLayer } = LayersControl;
 
 // Custom hook to update map view when center or zoom changes
 function ChangeView({ center, zoom }) {
@@ -38,7 +37,16 @@ function ChangeView({ center, zoom }) {
 }
 
 /**
- * MapComponent
+ * MapComponent - The main map component responsible for rendering the map and its elements
+ * 
+ * @param {Array} properties - Array of property objects to display on the map
+ * @param {Array} mapCenter - [lat, lng] coordinates for the map center
+ * @param {Number} mapZoom - Zoom level for the map
+ * @param {Array} userLocation - [lat, lng] coordinates of the user's location
+ * @param {Object} selectedProperty - The currently selected property object
+ * @param {Function} onMarkerClick - Callback function when a marker is clicked
+ * @param {Function} onMapMove - Callback function when the map is moved or zoomed
+ * @param {Boolean} loading - Whether map data is currently loading
  */
 const MapComponent = ({
   properties,
@@ -48,13 +56,19 @@ const MapComponent = ({
   selectedProperty,
   onMarkerClick,
   onMapMove,
+  loading = false,
 }) => {
-  const { t } = useTranslation(); // Initialize translation
+  const { t } = useTranslation();
   const mapRef = useRef();
+
+  // Default center if not provided
+  const defaultCenter = [23.8103, 90.4125]; // Dhaka coordinates
+  const defaultZoom = 7;
 
   // Handler for map move/zoom events
   const MapEvents = () => {
     const map = useMap();
+    
     useEffect(() => {
       if (!onMapMove) return;
 
@@ -71,10 +85,31 @@ const MapComponent = ({
         map.off("moveend", handleMoveEnd);
         map.off("zoomend", handleMoveEnd);
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [map]);
+    
     return null;
   };
+
+  // Show loading indicator if data is loading
+  if (loading) {
+    return (
+      <Box 
+        sx={{ 
+          height: "100%", 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 2
+        }}
+      >
+        <CircularProgress />
+        <Typography variant="body1">
+          {t('loading_map', 'Loading map data...')}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <MapContainer
@@ -82,17 +117,49 @@ const MapComponent = ({
       center={
         Array.isArray(mapCenter) && mapCenter.length === 2
           ? mapCenter
-          : [23.8103, 90.4125]
+          : defaultCenter
       }
-      zoom={typeof mapZoom === "number" ? mapZoom : 7}
+      zoom={typeof mapZoom === "number" ? mapZoom : defaultZoom}
       scrollWheelZoom={true}
       style={{ height: "100%", width: "100%", borderRadius: "inherit" }}
+      zoomControl={false} // We'll add our own zoom control in a better position
     >
-      <ChangeView center={mapCenter} zoom={mapZoom} />
-      <TileLayer
-        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      {/* Update map view when center or zoom changes */}
+      <ChangeView 
+        center={
+          Array.isArray(mapCenter) && mapCenter.length === 2
+            ? mapCenter
+            : defaultCenter
+        } 
+        zoom={typeof mapZoom === "number" ? mapZoom : defaultZoom} 
       />
+      
+      {/* Add zoom control in top-right instead of top-left */}
+      <ZoomControl position="topright" />
+      
+      {/* Allow users to switch between map styles */}
+      <LayersControl position="topright">
+        <BaseLayer checked name={t('street_map', 'Street Map')}>
+          <TileLayer
+            attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        </BaseLayer>
+        
+        <BaseLayer name={t('satellite', 'Satellite')}>
+          <TileLayer
+            attribution='Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
+            url="https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw"
+          />
+        </BaseLayer>
+        
+        <BaseLayer name={t('terrain', 'Terrain')}>
+          <TileLayer
+            attribution='Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
+            url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+          />
+        </BaseLayer>
+      </LayersControl>
 
       {/* Render User Location Marker */}
       {userLocation &&
@@ -101,50 +168,51 @@ const MapComponent = ({
           <CircleMarker
             center={userLocation}
             radius={8}
-            pathOptions={{ color: "blue", fillColor: "blue", fillOpacity: 0.6 }}
+            pathOptions={{ 
+              color: "#2196f3", 
+              fillColor: "#2196f3", 
+              fillOpacity: 0.6,
+              weight: 2
+            }}
           >
-            <Tooltip>Your Location</Tooltip>{" "}
-            {/* <-- Kept as is, no key found */}
+            <Tooltip permanent direction="top" offset={[0, -10]}>
+              {t('your_location', 'Your Location')}
+            </Tooltip>
           </CircleMarker>
         )}
 
-      {/* Render Property Markers */}
-      {properties &&
-        properties.map((property) => {
-          if (
-            !property?.position ||
-            typeof property.position.lat !== "number" ||
-            typeof property.position.lng !== "number"
-          ) {
-            console.warn(
-              "Skipping property marker due to invalid position:",
-              property
-            );
-            return null;
-          }
-          return (
-            <Marker
-              key={property._id}
-              position={[property.position.lat, property.position.lng]}
-              eventHandlers={{
-                click: () => {
-                  if (onMarkerClick) onMarkerClick(property);
-                },
-              }}
-            >
-              <Popup>
-                <b>{property.title}</b>
-                <br />
-                {property.location}
-                <br />
-                {/* Applied translation for "Price" */}
-                {t("price")}: ৳ {property.price?.toLocaleString()}
-                {property.mode === "rent" ? "/mo" : ""} {/* Keep suffix */}
-              </Popup>
-            </Marker>
-          );
-        })}
+      {/* Render Property Markers with Custom Components */}
+      {Array.isArray(properties) && properties.map((property) => {
+        if (!property || !property._id) return null;
+        
+        // Skip properties with invalid position data
+        if (
+          !property?.position ||
+          typeof property.position.lat !== "number" ||
+          typeof property.position.lng !== "number"
+        ) {
+          console.warn("Property has invalid position data:", property._id);
+          return null;
+        }
+        
+        const isSelected = selectedProperty && selectedProperty._id === property._id;
+        
+        return (
+          <MapMarker
+            key={property._id}
+            property={property}
+            isSelected={isSelected}
+            onClick={onMarkerClick}
+          >
+            <MapPopup
+              property={property}
+              onViewDetails={() => onMarkerClick(property)}
+            />
+          </MapMarker>
+        );
+      })}
 
+      {/* Map Events handler for tracking map movements */}
       {onMapMove && <MapEvents />}
     </MapContainer>
   );
