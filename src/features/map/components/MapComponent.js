@@ -205,7 +205,8 @@ const MapComponent = ({
       property._id && 
       property.position && 
       typeof property.position.lat === "number" && 
-      typeof property.position.lng === "number"
+      typeof property.position.lng === "number" &&
+      !property.hasMissingCoordinates
     );
   }, [properties]);
 
@@ -296,23 +297,30 @@ const MapComponent = ({
         )}
 
       {/* Render Property Markers with Custom Components */}
-      {validProperties.map((property) => {
-        const isSelected = selectedPropertyId === property._id;
-        
-        return (
-          <MapMarker
-            key={property._id}
-            property={property}
-            isSelected={isSelected}
-            onClick={handleMarkerClick}
-          >
-            <MapPopup
+      {validProperties
+        .filter(property => 
+          property && 
+          property.position && 
+          typeof property.position.lat === 'number' && 
+          typeof property.position.lng === 'number' &&
+          !property.hasMissingCoordinates)
+        .map((property) => {
+          const isSelected = selectedPropertyId === property._id;
+          
+          return (
+            <MapMarker
+              key={property._id}
               property={property}
-              onViewDetails={handleMarkerClick}
-            />
-          </MapMarker>
-        );
-      })}
+              isSelected={isSelected}
+              onClick={handleMarkerClick}
+            >
+              <MapPopup
+                property={property}
+                onViewDetails={handleMarkerClick}
+              />
+            </MapMarker>
+          );
+        })}
 
       {/* Map Events handler for tracking map movements */}
       {onMapMove && <MapEvents />}

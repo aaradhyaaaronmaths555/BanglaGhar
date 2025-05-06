@@ -177,47 +177,32 @@ const MapPage = () => {
                 typeof propertyWithPosition.position.lat !== 'number' || 
                 typeof propertyWithPosition.position.lng !== 'number') {
               
-              console.log("Property has no valid position data. Adding stable position.");
+              // Instead of generating random positions, just log a warning
+              console.warn(`Property ${propertyCode} has no valid position data.`);
               
-              // Generate a stable position for this property using its ID
-              const propertyId = propertyWithPosition._id || propertyCode;
+              // Notify the user
+              showNotification("This property doesn't have location coordinates yet.", "warning");
               
-              // Use a hash function to generate a stable number from the ID
-              const hashCode = (str) => {
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                  const char = str.charCodeAt(i);
-                  hash = ((hash << 5) - hash) + char;
-                  hash = hash & hash; // Convert to 32bit integer
-                }
-                return hash;
-              };
+              // Set a flag to indicate missing coordinates
+              propertyWithPosition.hasMissingCoordinates = true;
+            } else {
+              // If we have valid coordinates, normalize them
+              const stablePosition = normalizePosition(propertyWithPosition.position);
               
-              // Generate a stable position using the hash
-              const hash = hashCode(propertyId);
-              const lat = 23.8103 + (Math.abs(hash % 1000) / 10000);
-              const lng = 90.4125 + (Math.abs((hash >> 10) % 1000) / 10000);
+              // Store property position for future reference
+              propertyPositionRef.current = stablePosition;
               
-              propertyWithPosition.position = {
-                lat,
-                lng
-              };
+              // Update the position with normalized coordinates
+              propertyWithPosition.position = stablePosition;
             }
             
-            // Normalize position coordinates
-            const stablePosition = normalizePosition(propertyWithPosition.position);
-            
-            // Store property position for future reference
-            propertyPositionRef.current = stablePosition;
-            
-            // Add address and position to the property
+            // Add address to the property
             const enhancedProperty = {
               ...propertyWithPosition,
-              address: addressString, // Add the full address string
-              position: stablePosition // Use normalized position
+              address: addressString // Add the full address string
             };
             
-            console.log(`Property loaded: ${propertyCode}, position: ${JSON.stringify(stablePosition)}`);
+            console.log(`Property loaded: ${propertyCode}`);
             
             // Select the property
             handleSelectProperty(enhancedProperty);
@@ -279,16 +264,26 @@ const MapPage = () => {
     // Use the hook's handler with the enhanced property
     handleSelectProperty(enhancedProperty);
     
-    // Update position reference
-    if (property && property.position) {
+    // Update position reference only if valid coordinates exist
+    if (property && property.position && 
+        typeof property.position.lat === 'number' && 
+        typeof property.position.lng === 'number') {
       propertyPositionRef.current = normalizePosition(property.position);
+    } else {
+      propertyPositionRef.current = null;
+      
+      // Notify if the selected property has no coordinates
+      if (!property.hasMissingCoordinates) {
+        showNotification("This property doesn't have location coordinates yet.", "warning");
+        enhancedProperty.hasMissingCoordinates = true;
+      }
     }
     
     // Update address reference
     propertyAddressRef.current = enhancedProperty.address;
     
     console.log(`Selected property: ${property?._id}, address: ${enhancedProperty.address}`);
-  }, [handleSelectProperty]);
+  }, [handleSelectProperty, showNotification]);
   
   // Locate user handler with error handling
   const handleLocateUser = () => {
@@ -403,7 +398,11 @@ const MapPage = () => {
           </Box>
         ) : (
           <MapComponent
-            properties={properties}
+            properties={properties.filter(p => 
+              p.position && 
+              typeof p.position.lat === 'number' && 
+              typeof p.position.lng === 'number'
+            )}
             mapCenter={mapCenter}
             mapZoom={mapZoom}
             userLocation={userLocation}
@@ -414,7 +413,25 @@ const MapPage = () => {
         )}
         
         {/* Selected property info panel */}
-        {selectedProperty && <PropertyInfoPanel selectedProperty={selectedProperty} />}
+        {selectedProperty && !selectedProperty.hasMissingCoordinates && <PropertyInfoPanel selectedProperty={selectedProperty} />}
+        
+        {/* Message for property with missing coordinates */}
+        {selectedProperty && selectedProperty.hasMissingCoordinates && (
+          <Alert
+            severity="warning"
+            sx={{ 
+              position: "absolute", 
+              bottom: "20px", 
+              left: "50%", 
+              transform: "translateX(-50%)",
+              zIndex: 1001,
+              width: "90%",
+              maxWidth: "600px"
+            }}
+          >
+            {t("missing_coordinates", "This property doesn't have location coordinates yet. It won't be displayed on the map.")}
+          </Alert>
+        )}
       </Box>
       
       {/* Filters Drawer */}
