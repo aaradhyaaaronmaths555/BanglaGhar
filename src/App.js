@@ -36,6 +36,9 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { AuthProvider } from "./context/AuthContext"; // Adjust path if needed
 import { SnackbarProvider } from "./context/SnackbarContext"; // Adjust path if needed
 
+// Chat Manager
+import ChatManager from "./features/chat/ChatManager"; // Import the ChatManager component
+
 // --- Create Layout Components ---
 
 // Layout for main user-facing pages (includes Navbar and Footer)
@@ -133,6 +136,8 @@ function App() {
               {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>
           </Router>
+          {/* Chat Manager */}
+          <ChatManager />
         </SnackbarProvider>
         {/* Optional: Add a global Snackbar or Toast component here if needed */}
         {/* <SnackbarComponent /> */}

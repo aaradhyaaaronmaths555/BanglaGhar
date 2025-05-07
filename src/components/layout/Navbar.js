@@ -1,5 +1,5 @@
 // src/components/layout/Navbar.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   AppBar,
   Toolbar,
@@ -13,9 +13,6 @@ import {
   Snackbar,
   Alert,
   Drawer,
-  List,
-  ListItem,
-  ListItemText,
 } from "@mui/material";
 import { styled, useTheme, alpha } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -33,8 +30,9 @@ import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import { useTranslation } from "react-i18next";
 // Import the UploadIdModal
 import UploadIdModal from "../../features/profile/components/UploadIdModal"; // Adjust path
+import UserPropertiesModal from "../../features/chat/UserPropertiesModal";
+import PropertyChat from "../../features/chat/PropertyChat";
 import axios from "axios";
-import PropertyDetailPage from "../../features/properties/pages/PropertyDetailPage"; // Adjust path
 
 // --- Styling Components (Keep existing HideOnScroll, NavbarContainer) ---
 function HideOnScroll(props) {
@@ -64,9 +62,8 @@ const Navbar = () => {
   const [logoutSnackbar, setLogoutSnackbar] = useState(false);
   // --- State for Upload ID Modal ---
   const [uploadIdModalOpen, setUploadIdModalOpen] = useState(false);
-  // --- State for Chat Drawer ---
-  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
-  const [properties, setProperties] = useState([]);
+  // --- State for Properties Modal ---
+  const [propertiesModalOpen, setPropertiesModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
 
   const navLinks = [
@@ -102,30 +99,26 @@ const Navbar = () => {
   const handleOpenUploadModal = () => setUploadIdModalOpen(true);
   const handleCloseUploadModal = () => setUploadIdModalOpen(false);
 
-  // --- Handlers for Chat Drawer ---
-  const handleChatDrawerOpen = async () => {
-    setChatDrawerOpen(true);
-    try {
-      const token = localStorage.getItem("idToken");
-      const response = await axios.get(
-        "http://localhost:5001/api/user-profiles/me/listings",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setProperties(response.data);
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-    }
+  // --- Handlers for Properties Modal ---
+  const handleOpenPropertiesModal = () => {
+    setPropertiesModalOpen(true);
   };
 
-  const handleChatDrawerClose = () => {
-    setChatDrawerOpen(false);
+  const handleClosePropertiesModal = () => {
+    setPropertiesModalOpen(false);
+    setSelectedProperty(null);
   };
 
-  const handlePropertySelect = (property) => {
+  const handleSelectProperty = useCallback((property) => {
+    if (selectedProperty?._id === property._id) return; // Prevent redundant updates
+    console.log('Selected property:', property); // Debug log
     setSelectedProperty(property);
-  };
+    setPropertiesModalOpen(false); // Close the modal when a property is selected
+  }, [selectedProperty]);
+
+  const handleClosePropertyChat = useCallback(() => {
+    setSelectedProperty(null);
+  }, []);
 
   // --- Modified Navigation Logic ---
   const handleNavigate = (path) => {
@@ -222,7 +215,7 @@ const Navbar = () => {
                   <>
                     <Button
                       color="inherit"
-                      onClick={handleChatDrawerOpen}
+                      onClick={handleOpenPropertiesModal}
                       sx={{
                         textTransform: "none",
                         borderRadius: "8px",
@@ -292,25 +285,19 @@ const Navbar = () => {
         onClose={handleCloseUploadModal}
       />
 
-      {/* Chat Drawer */}
-      <Drawer anchor="right" open={chatDrawerOpen} onClose={handleChatDrawerClose}>
-        <Box sx={{ width: 300, p: 2 }}>
-          <Typography variant="h6">My Properties</Typography>
-          <List>
-            {properties.map((property) => (
-              <ListItem button key={property._id} onClick={() => handlePropertySelect(property)}>
-                <ListItemText primary={property.title} secondary={property.cityTown} />
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+      {/* User Properties Modal */}
+      <UserPropertiesModal
+        open={propertiesModalOpen}
+        onClose={handleClosePropertiesModal}
+        onSelectProperty={handleSelectProperty}
+      />
 
-      {/* Property Detail Drawer */}
+      {/* Property Chat */}
       {selectedProperty && (
-        <Drawer anchor="right" open={!!selectedProperty} onClose={() => setSelectedProperty(null)}>
-          <PropertyDetailPage propertyId={selectedProperty._id} />
-        </Drawer>
+        <PropertyChat
+          property={selectedProperty}
+          onClose={handleClosePropertyChat}
+        />
       )}
 
       {/* Logout Snackbar */}

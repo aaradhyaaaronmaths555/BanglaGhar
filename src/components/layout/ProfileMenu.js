@@ -98,20 +98,15 @@ export default function ProfileMenu({ handleLogout }) {
         </MenuItem>
 
         {/* --- Conditional Admin Link --- */}
-        {user?.isAdmin && (
-          <>
-            <Divider sx={{ my: 0.5 }} />
-            <MenuItem onClick={() => go("/admin/pending-approvals")}>
-              {" "}
-              {/* Link to admin section */}
-              <ListItemIcon>
-                <AdminPanelSettingsIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Admin Dashboard</ListItemText>{" "}
-              {/* Or use t('nav_admin') */}
-            </MenuItem>
-          </>
-        )}
+        {user?.isAdmin && [
+          <Divider key="divider" sx={{ my: 0.5 }} />,
+          <MenuItem key="admin-dashboard" onClick={() => go("/admin/pending-approvals")}> {/* Link to admin section */}
+            <ListItemIcon>
+              <AdminPanelSettingsIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Admin Dashboard</ListItemText> {/* Or use t('nav_admin') */}
+          </MenuItem>,
+        ]}
         {/* --- End Conditional Admin Link --- */}
 
         <Divider sx={{ my: 0.5 }} />

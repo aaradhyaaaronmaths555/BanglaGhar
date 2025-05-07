@@ -131,6 +131,7 @@ const PropertyDetailPage = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [isSubscribed, setIsSubscribed] = useState(false); // Track subscription state
 
   // Fetching Logic
   const fetchPropertyDetails = useCallback(async () => {
@@ -174,16 +175,32 @@ const PropertyDetailPage = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
-  const handleChatOpen = () => {
+  const handleChatOpen = async () => {
     setChatOpen(true);
     const channel = ably.channels.get(`property-${propertyId}`); // Use propertyId as the channel name
 
-    channel.subscribe((msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+    // Fetch existing messages
+    try {
+      const messagesPage = await channel.history({ limit: 50 }); // Fetch up to 50 messages
+      const existingMessages = messagesPage.items.reverse(); // Reverse the order to show oldest first
+      setMessages(existingMessages);
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+    }
+
+    // Subscribe to new messages if not already subscribed
+    if (!isSubscribed) {
+      channel.subscribe((msg) => {
+        setMessages((prev) => [...prev, msg]);
+      });
+      setIsSubscribed(true); // Mark as subscribed
+    }
   };
 
   const handleChatClose = () => {
+    const channel = ably.channels.get(`property-${propertyId}`);
+    channel.unsubscribe(); // Unsubscribe when the modal is closed
+    setIsSubscribed(false); // Reset subscription state
     setChatOpen(false);
   };
 
