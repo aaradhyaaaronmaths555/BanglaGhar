@@ -12,6 +12,10 @@ import {
   Container,
   Snackbar,
   Alert,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
 import { styled, useTheme, alpha } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -29,6 +33,8 @@ import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import { useTranslation } from "react-i18next";
 // Import the UploadIdModal
 import UploadIdModal from "../../features/profile/components/UploadIdModal"; // Adjust path
+import axios from "axios";
+import PropertyDetailPage from "../../features/properties/pages/PropertyDetailPage"; // Adjust path
 
 // --- Styling Components (Keep existing HideOnScroll, NavbarContainer) ---
 function HideOnScroll(props) {
@@ -58,6 +64,10 @@ const Navbar = () => {
   const [logoutSnackbar, setLogoutSnackbar] = useState(false);
   // --- State for Upload ID Modal ---
   const [uploadIdModalOpen, setUploadIdModalOpen] = useState(false);
+  // --- State for Chat Drawer ---
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [selectedProperty, setSelectedProperty] = useState(null);
 
   const navLinks = [
     { id: "home", label: t("nav_home"), path: "/", icon: <HomeIcon /> },
@@ -91,6 +101,31 @@ const Navbar = () => {
   // --- Handlers for Upload ID Modal ---
   const handleOpenUploadModal = () => setUploadIdModalOpen(true);
   const handleCloseUploadModal = () => setUploadIdModalOpen(false);
+
+  // --- Handlers for Chat Drawer ---
+  const handleChatDrawerOpen = async () => {
+    setChatDrawerOpen(true);
+    try {
+      const token = localStorage.getItem("idToken");
+      const response = await axios.get(
+        "http://localhost:5001/api/user-profiles/me/listings",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setProperties(response.data);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    }
+  };
+
+  const handleChatDrawerClose = () => {
+    setChatDrawerOpen(false);
+  };
+
+  const handlePropertySelect = (property) => {
+    setSelectedProperty(property);
+  };
 
   // --- Modified Navigation Logic ---
   const handleNavigate = (path) => {
@@ -184,7 +219,20 @@ const Navbar = () => {
                 />
                 <LanguageToggle />
                 {isLoggedIn ? (
-                  <ProfileMenu handleLogout={handleLogout} />
+                  <>
+                    <Button
+                      color="inherit"
+                      onClick={handleChatDrawerOpen}
+                      sx={{
+                        textTransform: "none",
+                        borderRadius: "8px",
+                        "&:hover": { bgcolor: "action.hover" },
+                      }}
+                    >
+                      My Chats
+                    </Button>
+                    <ProfileMenu handleLogout={handleLogout} />
+                  </>
                 ) : (
                   <Button
                     component={RouterLink}
@@ -243,6 +291,27 @@ const Navbar = () => {
         open={uploadIdModalOpen}
         onClose={handleCloseUploadModal}
       />
+
+      {/* Chat Drawer */}
+      <Drawer anchor="right" open={chatDrawerOpen} onClose={handleChatDrawerClose}>
+        <Box sx={{ width: 300, p: 2 }}>
+          <Typography variant="h6">My Properties</Typography>
+          <List>
+            {properties.map((property) => (
+              <ListItem button key={property._id} onClick={() => handlePropertySelect(property)}>
+                <ListItemText primary={property.title} secondary={property.cityTown} />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+
+      {/* Property Detail Drawer */}
+      {selectedProperty && (
+        <Drawer anchor="right" open={!!selectedProperty} onClose={() => setSelectedProperty(null)}>
+          <PropertyDetailPage propertyId={selectedProperty._id} />
+        </Drawer>
+      )}
 
       {/* Logout Snackbar */}
       <Snackbar

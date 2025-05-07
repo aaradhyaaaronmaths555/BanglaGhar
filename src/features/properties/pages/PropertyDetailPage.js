@@ -20,6 +20,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Drawer,
+  TextField,
 } from "@mui/material";
 // Existing Icons
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -50,9 +52,12 @@ import ElevatorIcon from "@mui/icons-material/Elevator"; // Lift (Example)
 import axios from "axios";
 import { useAuth } from "../../../context/AuthContext"; // Adjust path if needed
 import useWishlist from "./../hooks/useWishlist"; // Adjust path if needed
+import Ably from "ably";
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5001/api";
+
+const ably = new Ably.Realtime({ key: "eCpzJg.2DpgHQ:eZs-ze4b9JGwaEUpEQdUNRSd5hwdjXrstIaStIqu8_o" });
 
 // Helper to format price
 const formatDisplayPrice = (price, listingType) => {
@@ -123,6 +128,10 @@ const PropertyDetailPage = () => {
     severity: "info",
   });
 
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState("");
+
   // Fetching Logic
   const fetchPropertyDetails = useCallback(async () => {
     if (!propertyId) {
@@ -163,6 +172,25 @@ const PropertyDetailPage = () => {
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
+  const handleChatOpen = () => {
+    setChatOpen(true);
+    const channel = ably.channels.get(`property-${propertyId}`); // Use propertyId as the channel name
+
+    channel.subscribe((msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+  };
+
+  const handleChatClose = () => {
+    setChatOpen(false);
+  };
+
+  const sendMessage = async () => {
+    const channel = ably.channels.get(`property-${propertyId}`); // Use propertyId as the channel name
+    await channel.publish("message", { sender: user.email, text: message });
+    setMessage("");
   };
 
   // --- Render Logic ---
@@ -620,11 +648,43 @@ const PropertyDetailPage = () => {
                 <Button variant="contained" fullWidth>
                   Show Contact Info
                 </Button>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={handleChatOpen}
+                  sx={{ mt: 2 }}
+                >
+                  Chat with Owner
+                </Button>
               </Box>
             </Box>
           </Grid>
         </Grid>
       </Paper>
+      {/* Chat Drawer */}
+      <Drawer anchor="right" open={chatOpen} onClose={handleChatClose}>
+        <Box sx={{ width: 300, p: 2 }}>
+          <Typography variant="h6">Chat with Owner</Typography>
+          <Box sx={{ height: 400, overflowY: "auto", my: 2 }}>
+            {messages.map((msg, index) => (
+              <Typography key={index} variant="body2">
+                <strong>{msg.data.sender}:</strong> {msg.data.text}
+              </Typography>
+            ))}
+          </Box>
+          <TextField
+            fullWidth
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message..."
+            variant="outlined"
+            sx={{ mb: 2 }}
+          />
+          <Button variant="contained" fullWidth onClick={sendMessage}>
+            Send
+          </Button>
+        </Box>
+      </Drawer>
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
