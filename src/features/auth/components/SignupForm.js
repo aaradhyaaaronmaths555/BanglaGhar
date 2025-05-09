@@ -1,21 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   TextField,
   Button,
   styled,
-  Typography, // Import Typography for helper text
-  CircularProgress, // Import CircularProgress
-  List, // Import List components for validation feedback
+  Typography,
+  CircularProgress,
+  List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // Icon for valid criteria
-import CancelIcon from "@mui/icons-material/Cancel"; // Icon for invalid criteria
-import { useTranslation } from "react-i18next"; // Import useTranslation
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useTranslation } from "react-i18next";
 
-// --- Styled Components (Copied from original Signup.js - specific to form button) ---
 const StyledButton = styled(Button)(({ theme }) => ({
   margin: theme.spacing(3, 0, 2),
   padding: theme.spacing(1.5),
@@ -31,7 +34,6 @@ const StyledButton = styled(Button)(({ theme }) => ({
     transform: "translateY(-2px)",
   },
   "&:disabled": {
-    // Style for disabled state
     backgroundColor: theme.palette.action.disabledBackground,
     boxShadow: "none",
     color: theme.palette.action.disabled,
@@ -39,18 +41,16 @@ const StyledButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-// Helper component for displaying password validation criteria
-// Note: Criteria labels are kept hardcoded as no direct individual keys were found in en.json
 const PasswordCriteria = ({ validation }) => {
   const criteria = [
-    { label: "At least 8 characters", valid: validation.hasMinLength }, // Kept hardcoded
-    { label: "Contains a number", valid: validation.hasNumber }, // Kept hardcoded
+    { label: "At least 8 characters", valid: validation.hasMinLength },
+    { label: "Contains a number", valid: validation.hasNumber },
     {
-      label: "Contains a special character (!@#$...etc)", // Kept hardcoded
+      label: "Contains a special character (!@#$...etc)",
       valid: validation.hasSpecial,
     },
-    { label: "Contains an uppercase letter", valid: validation.hasUppercase }, // Kept hardcoded
-    { label: "Contains a lowercase letter", valid: validation.hasLowercase }, // Kept hardcoded
+    { label: "Contains an uppercase letter", valid: validation.hasUppercase },
+    { label: "Contains a lowercase letter", valid: validation.hasLowercase },
   ];
 
   return (
@@ -68,7 +68,7 @@ const PasswordCriteria = ({ validation }) => {
             primary={item.label}
             primaryTypographyProps={{
               variant: "caption",
-              color: item.valid ? "text.secondary" : "error", // Highlight invalid criteria
+              color: item.valid ? "text.secondary" : "error",
             }}
           />
         </ListItem>
@@ -77,18 +77,13 @@ const PasswordCriteria = ({ validation }) => {
   );
 };
 
-/**
- * SignupForm Component
- * Renders the fields and button for the signup form.
- * @param {object} props - Component props including form data, handlers, validation state, and submission status.
- */
 const SignupForm = ({
   email,
   username,
   password,
   confirmPass,
-  passwordValidation, // Receive validation state object
-  isPasswordValid, // Receive boolean if overall password is valid
+  passwordValidation,
+  isPasswordValid,
   onEmailChange,
   onUsernameChange,
   onPasswordChange,
@@ -96,17 +91,30 @@ const SignupForm = ({
   onSubmit,
   isSubmitting,
 }) => {
-  const { t } = useTranslation(); // Initialize translation
+  const { t } = useTranslation();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handleTogglePassword = () => {
+    setShowPassword((prev) => !prev);
+  };
+
+  const handleToggleConfirmPassword = () => {
+    setShowConfirmPassword((prev) => !prev);
+  };
+
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
+  };
 
   return (
     <Box component="form" onSubmit={onSubmit} sx={{ width: "100%" }}>
-      {/* Email Field */}
       <TextField
         margin="normal"
         required
         fullWidth
         id="email"
-        label={t("email")} // Applied translation
+        label={t("email")}
         name="email"
         autoComplete="email"
         autoFocus
@@ -116,13 +124,12 @@ const SignupForm = ({
         disabled={isSubmitting}
         sx={{ mb: 2 }}
       />
-      {/* Username Field */}
       <TextField
         margin="normal"
         required
         fullWidth
         id="username"
-        label={t("name")} // Applied translation (using 'name' key)
+        label={t("name")}
         name="username"
         autoComplete="name"
         variant="outlined"
@@ -131,58 +138,79 @@ const SignupForm = ({
         disabled={isSubmitting}
         sx={{ mb: 2 }}
       />
-      {/* Password Field */}
       <TextField
         margin="normal"
         required
         fullWidth
         id="password"
-        label={t("password")} // Applied translation
+        label={t("password")}
         name="password"
-        type="password"
-        autoComplete="new-password" // Hint for password managers
+        type={showPassword ? "text" : "password"}
+        autoComplete="new-password"
         variant="outlined"
         value={password}
         onChange={onPasswordChange}
         disabled={isSubmitting}
-        sx={{ mb: 0 }} // Reduced bottom margin as criteria list follows
+        sx={{ mb: 0 }}
         InputProps={{
-          "aria-describedby": "password-criteria", // Accessibility link
+          "aria-describedby": "password-criteria",
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label={t("toggle_password_visibility")}
+                onClick={handleTogglePassword}
+                onMouseDown={handleMouseDownPassword}
+                edge="end"
+                disabled={isSubmitting}
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
         }}
       />
-      {/* Password Criteria Display */}
       <Box id="password-criteria" sx={{ width: "100%" }}>
         <PasswordCriteria validation={passwordValidation} />
       </Box>
-
-      {/* Confirm Password Field */}
       <TextField
         margin="normal"
         required
         fullWidth
         id="confirmPassword"
-        label={t("confirm_password")} // Applied translation
+        label={t("confirm_password")}
         name="confirmPassword"
-        type="password"
+        type={showConfirmPassword ? "text" : "password"}
         autoComplete="new-password"
         variant="outlined"
         value={confirmPass}
         onChange={onConfirmPassChange}
         disabled={isSubmitting}
         sx={{ mb: 2 }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label={t("toggle_password_visibility")}
+                onClick={handleToggleConfirmPassword}
+                onMouseDown={handleMouseDownPassword}
+                edge="end"
+                disabled={isSubmitting}
+              >
+                {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
-
-      {/* Submit Button */}
       <StyledButton
         type="submit"
-        fullWidth
+        fullWidth 
         variant="contained"
-        disabled={isSubmitting} // Disable during submission
+        disabled={isSubmitting}
         startIcon={
           isSubmitting ? <CircularProgress size={20} color="inherit" /> : null
         }
       >
-        {/* Applied translation */}
         {isSubmitting ? t("sending") : t("sign_up")}
       </StyledButton>
     </Box>
