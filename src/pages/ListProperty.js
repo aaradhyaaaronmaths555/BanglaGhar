@@ -34,6 +34,11 @@ import BathtubIcon from "@mui/icons-material/Bathtub";
 import SellIcon from "@mui/icons-material/Sell";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import DescriptionIcon from "@mui/icons-material/Description";
+import CommentIcon from "@mui/icons-material/Comment";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import { useAuth } from "./AuthContext";
 import axios from "axios";
 
@@ -130,23 +135,86 @@ const ListProperty = () => {
     propertyType: "",
     listingType: "sell",
     price: "",
+    streetWidth: "", // Renamed from streetSize
+    streetWidthComment: "", // Comment for street width
     address: "",
     city: "",
-    state: "",
-    zipCode: "",
+    division: "", // Renamed from state
+    postcode: "", // Renamed from zipCode
     bedrooms: "",
     bathrooms: "",
     area: "",
     features: {
       parking: false,
+      parkingComment: "", // Comment for parking
       garden: false,
+      gardenComment: "", // Comment for garden
       airConditioning: false,
+      airConditioningComment: "", // Comment for air conditioning
       furnished: false,
+      furnishedComment: "", // Comment for furnished
       pool: false,
+      poolComment: "", // Comment for swimming pool
+      liftsInstalled: false,
+      liftsInstalledComment: "", // Comment for lifts installed
     },
     description: "",
     photos: [],
+    nearbyAmenities: {
+      educationalInstitutions: "N/A", // Renamed from institutions
+      educationalInstitutionsComment: "", // Comment for educational institutions
+      hospital: "N/A",
+      hospitalComment: "", // Comment for hospital
+      market: "N/A",
+      marketComment: "", // Comment for market
+    },
+    freshWaterSupply: "", // New field for fresh water supply
+    freshWaterSupplyComment: "", // Comment for fresh water supply
+    gasSupply: "", // New field for gas supply
+    gasSupplyComment: "", // Comment for gas supply
+    hasLift: false, // New field for lift availability
+    hasLiftComment: "", // Comment for lift availability
   });
+
+  const [banglaDescription, setBanglaDescription] = useState(""); // State for Bangla description
+  const [useBanglaDescription, setUseBanglaDescription] = useState(false); // Toggle for description language
+
+  const [commentDialog, setCommentDialog] = useState({
+    open: false,
+    field: "",
+    value: "",
+  });
+
+  // Handle opening the comment dialog
+  const handleOpenCommentDialog = (field, value) => {
+    setCommentDialog({ open: true, field, value });
+  };
+
+  // Handle closing the comment dialog
+  const handleCloseCommentDialog = () => {
+    setCommentDialog({ open: false, field: "", value: "" });
+  };
+
+  // Handle saving the comment
+  const handleSaveComment = () => {
+    const fieldPath = commentDialog.field.split(".");
+    setFormData((prevFormData) => {
+      const updatedFormData = { ...prevFormData };
+      let current = updatedFormData;
+
+      // Traverse the nested structure to the correct field
+      for (let i = 0; i < fieldPath.length - 1; i++) {
+        current = current[fieldPath[i]];
+      }
+
+      // Update the specific field with the comment value
+      current[fieldPath[fieldPath.length - 1]] = commentDialog.value;
+
+      return updatedFormData;
+    });
+
+    handleCloseCommentDialog();
+  };
 
   // Form validation errors
   const [errors, setErrors] = useState({});
@@ -168,11 +236,22 @@ const ListProperty = () => {
               price: formData.price,
               address: formData.address,
               city: formData.city,
-              state: formData.state,
+              division: formData.division,
+              postcode: formData.postcode,
               bedrooms: formData.bedrooms,
               bathrooms: formData.bathrooms,
               area: formData.area,
+              streetWidth: formData.streetWidth, // Renamed from streetSize
+              streetWidthComment: formData.streetWidthComment,
               features: formData.features,
+              nearbyAmenities: formData.nearbyAmenities,
+              descriptionKeywords: formData.description, // Include manual description as keywords
+              freshWaterSupply: formData.freshWaterSupply, // Include fresh water supply
+              freshWaterSupplyComment: formData.freshWaterSupplyComment,
+              gasSupply: formData.gasSupply, // Include gas supply
+              gasSupplyComment: formData.gasSupplyComment,
+              hasLift: formData.hasLift, // Include lift availability
+              hasLiftComment: formData.hasLiftComment,
             },
           }),
         }
@@ -194,6 +273,29 @@ const ListProperty = () => {
       setIsGenerating(false);
     }
   };
+
+  // Function to translate description into Bangla
+  const translateToBangla = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: aiGeneratedDescription }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to translate description");
+      }
+
+      const data = await response.json();
+      setBanglaDescription(data.translatedText);
+    } catch (error) {
+      console.error("Error translating description:", error);
+    }
+  };
+
   // Redirect if not logged in
   useEffect(() => {
     if (!isLoggedIn) {
@@ -229,6 +331,17 @@ const ListProperty = () => {
     });
   };
 
+  // Handle nearby amenities changes
+  const handleNearbyAmenityChange = (amenity, value) => {
+    setFormData({
+      ...formData,
+      nearbyAmenities: {
+        ...formData.nearbyAmenities,
+        [amenity]: value ? "Yes" : "N/A",
+      },
+    });
+  };
+
   // Validate form fields
   const validateForm = () => {
     const newErrors = {};
@@ -254,8 +367,8 @@ const ListProperty = () => {
     else if (activeStep === 1) {
       if (!formData.address) newErrors.address = "Address is required";
       if (!formData.city) newErrors.city = "City is required";
-      if (!formData.state) newErrors.state = "State is required";
-      if (!formData.zipCode) newErrors.zipCode = "ZIP code is required";
+      if (!formData.division) newErrors.division = "Division is required";
+      if (!formData.postcode) newErrors.postcode = "Postcode is required";
       if (!formData.bedrooms)
         newErrors.bedrooms = "Number of bedrooms is required";
       if (!formData.bathrooms)
@@ -306,7 +419,7 @@ const ListProperty = () => {
     const propertyData = {
       title: formData.title,
       price: cleanedPrice,
-      location: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+      location: `${formData.address}, ${formData.city}, ${formData.division} ${formData.postcode}`,
       mode: formData.listingType === "rent" ? "rent" : "buy",
       bedrooms: Number(formData.bedrooms),
       bathrooms: Number(formData.bathrooms),
@@ -316,21 +429,34 @@ const ListProperty = () => {
         formData.photos && formData.photos.length > 0
           ? formData.photos
           : ["house1.png"],
-      // Set createdBy using user.email from Auth context
-      createdBy: user?.email || user?.username || "unknown",
+      streetWidth: formData.streetWidth,
+      streetWidthComment: formData.streetWidthComment, // Include street width comment
+      freshWaterSupply: formData.freshWaterSupply,
+      freshWaterSupplyComment: formData.freshWaterSupplyComment, // Include fresh water supply comment
+      gasSupply: formData.gasSupply,
+      gasSupplyComment: formData.gasSupplyComment, // Include gas supply comment
+      hasLift: formData.hasLift,
+      hasLiftComment: formData.hasLiftComment, // Include lift availability comment
+      features: formData.features, // Include all features and their comments
+      nearbyAmenities: formData.nearbyAmenities, // Include all nearby amenities and their comments
+      createdBy: user?.email || user?.username || "unknown", // Set createdBy using user context
     };
 
-    console.log("Submitting property data:", propertyData);
+    // Log the propertyData object for debugging
+    console.log("Submitting property data:", JSON.stringify(propertyData, null, 2));
 
     try {
-      await axios.post("http://localhost:5001/api/properties", propertyData);
-      setOpenSnackbar(true);
-      setTimeout(() => {
-        navigate("/");
-      }, 3000);
+      const response = await axios.post("http://localhost:5001/api/properties", propertyData);
+      if (response.status === 200) {
+        setOpenSnackbar(true);
+        setTimeout(() => {
+          navigate("/");
+        }, 3000);
+      } else {
+        console.error("Unexpected response:", response);
+      }
     } catch (error) {
-      console.error("Error submitting property:", error);
-      // Add error handling
+      console.error("Error submitting property:", error.response?.data || error.message);
       setErrors({
         ...errors,
         submit: error.response?.data?.error || "Failed to submit property",
@@ -518,7 +644,7 @@ const ListProperty = () => {
             </Grid>
           </Grid>
         );
-      case 1:
+      case 1: // Second page: Location & Features
         return (
           <Grid container spacing={3}>
             <Grid item xs={12}>
@@ -564,13 +690,13 @@ const ListProperty = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField
-                name="state"
-                label="State"
+                name="division"
+                label="Division"
                 fullWidth
-                value={formData.state}
+                value={formData.division}
                 onChange={handleChange}
-                error={Boolean(errors.state)}
-                helperText={errors.state}
+                error={Boolean(errors.division)}
+                helperText={errors.division}
                 variant="outlined"
                 sx={{
                   "& .MuiOutlinedInput-root": {
@@ -581,13 +707,13 @@ const ListProperty = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField
-                name="zipCode"
-                label="ZIP Code"
+                name="postcode"
+                label="Postcode"
                 fullWidth
-                value={formData.zipCode}
+                value={formData.postcode}
                 onChange={handleChange}
-                error={Boolean(errors.zipCode)}
-                helperText={errors.zipCode}
+                error={Boolean(errors.postcode)}
+                helperText={errors.postcode}
                 variant="outlined"
                 sx={{
                   "& .MuiOutlinedInput-root": {
@@ -595,9 +721,6 @@ const ListProperty = () => {
                   },
                 }}
               />
-            </Grid>
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField
@@ -673,76 +796,199 @@ const ListProperty = () => {
             <Grid item xs={12}>
               <SectionTitle variant="h6">Features</SectionTitle>
               <Grid container spacing={2}>
-                <Grid item xs={6} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.features.parking}
-                        onChange={() => handleFeatureToggle("parking")}
-                        color="primary"
-                      />
-                    }
-                    label="Parking"
-                  />
-                </Grid>
-                <Grid item xs={6} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.features.garden}
-                        onChange={() => handleFeatureToggle("garden")}
-                        color="primary"
-                      />
-                    }
-                    label="Garden"
-                  />
-                </Grid>
-                <Grid item xs={6} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.features.airConditioning}
-                        onChange={() => handleFeatureToggle("airConditioning")}
-                        color="primary"
-                      />
-                    }
-                    label="Air Conditioning"
-                  />
-                </Grid>
-                <Grid item xs={6} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.features.furnished}
-                        onChange={() => handleFeatureToggle("furnished")}
-                        color="primary"
-                      />
-                    }
-                    label="Furnished"
-                  />
-                </Grid>
-                <Grid item xs={6} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.features.pool}
-                        onChange={() => handleFeatureToggle("pool")}
-                        color="primary"
-                      />
-                    }
-                    label="Swimming Pool"
-                  />
-                </Grid>
+                {[
+                  { label: "Parking", field: "parking" },
+                  { label: "Garden", field: "garden" },
+                  { label: "Air Conditioning", field: "airConditioning" },
+                  { label: "Furnished", field: "furnished" },
+                  { label: "Swimming Pool", field: "pool" },
+                  { label: "Lifts Installed", field: "liftsInstalled" },
+                ].map((feature) => (
+                  <Grid item xs={6} md={4} key={feature.field}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formData.features[feature.field]}
+                          onChange={() => handleFeatureToggle(feature.field)}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {feature.label}
+                          <CommentIcon
+                            color="primary"
+                            sx={{ cursor: "pointer", ml: 1 }}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent the Switch toggle
+                              handleOpenCommentDialog(
+                                `features.${feature.field}Comment`,
+                                formData.features[`${feature.field}Comment`] || ""
+                              );
+                            }}
+                          />
+                        </Box>
+                      }
+                    />
+                  </Grid>
+                ))}
               </Grid>
             </Grid>
           </Grid>
         );
-      case 2:
+      case 2: // Third page: Images & Description
         return (
           <Grid container spacing={3}>
-            <Grid item xs={12}>
-              {renderImageUpload()}
+            {/* Street Width */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                name="streetWidth"
+                label="Street Width (in feet)"
+                fullWidth
+                type="number"
+                value={formData.streetWidth}
+                onChange={handleChange}
+                error={Boolean(errors.streetWidth)}
+                helperText={errors.streetWidth}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SquareFootIcon color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <CommentIcon
+                        color="primary"
+                        sx={{ cursor: "pointer" }}
+                        onClick={() =>
+                          handleOpenCommentDialog("streetWidthComment", formData.streetWidthComment)
+                        }
+                      />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "10px",
+                  },
+                }}
+              />
             </Grid>
+
+            {/* Fresh Water Supply */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                name="freshWaterSupply"
+                label="Fresh Water Supply per day (in hours)"
+                fullWidth
+                type="number"
+                value={formData.freshWaterSupply}
+                onChange={handleChange}
+                error={Boolean(errors.freshWaterSupply)}
+                helperText={errors.freshWaterSupply}
+                variant="outlined"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SquareFootIcon color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <CommentIcon
+                        color="primary"
+                        sx={{ cursor: "pointer" }}
+                        onClick={() =>
+                          handleOpenCommentDialog("freshWaterSupplyComment", formData.freshWaterSupplyComment)
+                        }
+                      />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "10px",
+                  },
+                }}
+              />
+            </Grid>
+
+            {/* Gas Supply */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={Boolean(errors.gasSupply)}>
+                <InputLabel id="gas-supply-label">Gas Supply</InputLabel>
+                <Select
+                  labelId="gas-supply-label"
+                  name="gasSupply"
+                  value={formData.gasSupply}
+                  onChange={handleChange}
+                  label="Gas Supply"
+                  sx={{ borderRadius: "10px" }}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <CommentIcon
+                        color="primary"
+                        sx={{ cursor: "pointer" }}
+                        onClick={() =>
+                          handleOpenCommentDialog("gasSupplyComment", formData.gasSupplyComment)
+                        }
+                      />
+                    </InputAdornment>
+                  }
+                >
+                  <MenuItem value="Pipelines">Pipelines </MenuItem>
+                  <MenuItem value="Cylinders">Cylinders </MenuItem>
+                </Select>
+                {errors.gasSupply && <FormHelperText>{errors.gasSupply}</FormHelperText>}
+              </FormControl>
+            </Grid>
+
+            {/* Nearby amenities questions */}
+            <Grid item xs={12}>
+              <SectionTitle variant="h6">Nearby Amenities</SectionTitle>
+              <Grid container spacing={2}>
+                {[
+                  { label: "Nearby Educational Institutions", field: "educationalInstitutions" },
+                  { label: "Nearby Hospital", field: "hospital" },
+                  { label: "Nearby Market", field: "market" },
+                ].map((amenity) => (
+                  <Grid item xs={12} md={4} key={amenity.field}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={formData.nearbyAmenities[amenity.field] === "Yes"}
+                          onChange={(e) =>
+                            handleNearbyAmenityChange(amenity.field, e.target.checked)
+                          }
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {amenity.label}
+                          <CommentIcon
+                            color="primary"
+                            sx={{ cursor: "pointer", ml: 1 }}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent the Switch toggle
+                              handleOpenCommentDialog(
+                                `nearbyAmenities.${amenity.field}Comment`,
+                                formData.nearbyAmenities[`${amenity.field}Comment`] || ""
+                              );
+                            }}
+                          />
+                        </Box>
+                      }
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
+
+            {/* Existing content for Images & Description */}
+            {/* Generate with AI description box */}
             <Grid item xs={12}>
               <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
                 <StyledButton
@@ -802,6 +1048,46 @@ const ListProperty = () => {
                 </Box>
               )}
             </Grid>
+
+            {/* Translate to Bangla */}
+            {aiGeneratedDescription && (
+              <Grid item xs={12}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <StyledButton
+                    variant="outlined"
+                    onClick={translateToBangla}
+                    disabled={!aiGeneratedDescription}
+                    sx={{ mb: 1 }}
+                  >
+                    Translate to Bangla
+                  </StyledButton>
+                  {banglaDescription && (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={useBanglaDescription}
+                          onChange={(e) => setUseBanglaDescription(e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label="Use Bangla Description"
+                    />
+                  )}
+                </Box>
+              </Grid>
+            )}
+
+            {/* Display Bangla description */}
+            {banglaDescription && (
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom>
+                  Bangla Description:
+                </Typography>
+                <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
+                  {banglaDescription}
+                </Typography>
+              </Grid>
+            )}
             {formData.title && formData.price && (
               <Grid item xs={12}>
                 <SectionTitle variant="h6">Preview</SectionTitle>
@@ -816,8 +1102,8 @@ const ListProperty = () => {
                       {formData.title}
                     </Typography>
                     <Typography variant="body1" gutterBottom>
-                      {formData.address}, {formData.city}, {formData.state}{" "}
-                      {formData.zipCode}
+                      {formData.address}, {formData.city}, {formData.division}{" "}
+                      {formData.postcode}
                     </Typography>
                     <Typography variant="h6" color="primary" sx={{ mt: 2 }}>
                       ৳{Number(formData.price).toLocaleString()}
@@ -863,99 +1149,145 @@ const ListProperty = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4, display: "flex", alignItems: "center" }}>
-        <HomeWorkIcon sx={{ fontSize: 36, mr: 2, color: "#2B7B8C" }} />
-        <Typography variant="h4" fontWeight={700} color="#2B7B8C">
-          List Your Property
-        </Typography>
-      </Box>
+    <>
+      {/* Existing content */}
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box sx={{ mb: 4, display: "flex", alignItems: "center" }}>
+          <HomeWorkIcon sx={{ fontSize: 36, mr: 2, color: "#2B7B8C" }} />
+          <Typography variant="h4" fontWeight={700} color="#2B7B8C">
+            List Your Property
+          </Typography>
+        </Box>
 
-      {submitted ? (
-        <StyledPaper>
-          <Box sx={{ textAlign: "center", py: 4 }}>
-            <SellIcon sx={{ fontSize: 64, color: "#2B7B8C", mb: 3 }} />
-            <Typography variant="h5" gutterBottom fontWeight={600}>
-              Property Submitted Successfully!
-            </Typography>
-            <Typography variant="body1" paragraph color="text.secondary">
-              Your property has been submitted for review. Our team will contact
-              you shortly.
-            </Typography>
-            <StyledButton
-              variant="contained"
-              color="primary"
-              onClick={() => navigate("/")}
-              sx={{ mt: 2 }}
-            >
-              Return to Home
-            </StyledButton>
-          </Box>
-        </StyledPaper>
-      ) : (
-        <StyledPaper>
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-
-          <Box>
-            {getStepContent(activeStep)}
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}
-            >
-              <Button
-                disabled={activeStep === 0}
-                onClick={handleBack}
-                variant="outlined"
-                color="primary"
-                sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  fontWeight: 500,
-                  borderWidth: "2px",
-                  "&:hover": {
-                    borderWidth: "2px",
-                  },
-                }}
-              >
-                Back
-              </Button>
+        {submitted ? (
+          <StyledPaper>
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <SellIcon sx={{ fontSize: 64, color: "#2B7B8C", mb: 3 }} />
+              <Typography variant="h5" gutterBottom fontWeight={600}>
+                Property Submitted Successfully!
+              </Typography>
+              <Typography variant="body1" paragraph color="text.secondary">
+                Your property has been submitted for review. Our team will contact
+                you shortly.
+              </Typography>
               <StyledButton
                 variant="contained"
                 color="primary"
-                onClick={handleNext}
+                onClick={() => navigate("/")}
+                sx={{ mt: 2 }}
               >
-                {activeStep === steps.length - 1
-                  ? "Submit Property"
-                  : "Continue"}
+                Return to Home
               </StyledButton>
             </Box>
-          </Box>
-        </StyledPaper>
-      )}
+          </StyledPaper>
+        ) : (
+          <StyledPaper>
+            <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={3000}
-        onClose={() => setOpenSnackbar(false)}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity="success"
-          sx={{
-            width: "100%",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(43, 123, 140, 0.2)",
-          }}
+            <Box>
+              {getStepContent(activeStep)}
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}
+              >
+                <Button
+                  disabled={activeStep === 0}
+                  onClick={handleBack}
+                  variant="outlined"
+                  color="primary"
+                  sx={{
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    fontWeight: 500,
+                    borderWidth: "2px",
+                    "&:hover": {
+                      borderWidth: "2px",
+                    },
+                  }}
+                >
+                  Back
+                </Button>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => navigate("/")}
+                    sx={{
+                      borderRadius: "8px",
+                      textTransform: "none",
+                      fontWeight: 500,
+                      borderWidth: "2px",
+                      "&:hover": {
+                        borderWidth: "2px",
+                      },
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <StyledButton
+                    variant="contained"
+                    color="primary"
+                    onClick={handleNext}
+                  >
+                    {activeStep === steps.length - 1
+                      ? "Submit Property"
+                      : "Continue"}
+                  </StyledButton>
+                </Box>
+              </Box>
+            </Box>
+          </StyledPaper>
+        )}
+
+        <Snackbar
+          open={openSnackbar}
+          autoHideDuration={3000}
+          onClose={() => setOpenSnackbar(false)}
         >
-          Your property has been submitted successfully!
-        </Alert>
-      </Snackbar>
-    </Container>
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity="success"
+            sx={{
+              width: "100%",
+              borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(43, 123, 140, 0.2)",
+            }}
+          >
+            Your property has been submitted successfully!
+          </Alert>
+        </Snackbar>
+      </Container>
+
+      {/* Comment Dialog */}
+      <Dialog open={commentDialog.open} onClose={handleCloseCommentDialog}>
+        <DialogTitle>Add Comment</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            value={commentDialog.value}
+            onChange={(e) =>
+              setCommentDialog({ ...commentDialog, value: e.target.value })
+            }
+            placeholder="Write your comment here..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseCommentDialog} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleSaveComment} color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

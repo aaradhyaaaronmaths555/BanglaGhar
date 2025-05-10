@@ -206,6 +206,13 @@ app.delete("/api/users/:username/wishlist", async (req, res) => {
   }
 });
 
+// Remove the curly braces since you're exporting directly
+const { generatePropertyDescription, translateToBangla } = require("./propertydesc");
+
+app.post("/api/generate-description", generatePropertyDescription);
+app.post("/api/translate", translateToBangla);
+
+
 // 9) START THE SERVER
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
