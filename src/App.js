@@ -8,6 +8,9 @@ import {
   Outlet,
 } from "react-router-dom"; // Import Outlet
 
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
+
 // Layout Components
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
@@ -20,6 +23,7 @@ import MyListingsPage from "./pages/MyListingsPage";
 import Login from "./pages/Login";
 import ListProperty from "./features/listing/ListPropertyPage";
 import Signup from "./pages/Signup";
+import ChangePassword from "./pages/ChangePassword";
 import VerifyOtp from "./pages/VerifyOtp";
 import ForgotPassword from "./pages/ForgotPassword";
 import PropertiesPage from "./features/properties/PropertiesPage";
@@ -82,6 +86,8 @@ const BlankLayout = () => (
 function App() {
   return (
     <ThemeProvider theme={theme}>
+      <Analytics />
+      <SpeedInsights />
       <CssBaseline />
       <AuthProvider>
         <SnackbarProvider>
@@ -108,6 +114,7 @@ function App() {
               {/* Routes using the BlankLayout (No Navbar/Footer) */}
               <Route element={<BlankLayout />}>
                 <Route path="/login" element={<Login />} />
+                <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/verify-otp" element={<VerifyOtp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
