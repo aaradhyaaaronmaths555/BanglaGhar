@@ -8,6 +8,8 @@
 # testing
 /coverage
 
+/creds.txt
+
 #Credentials
 .env
 ./server/.env
