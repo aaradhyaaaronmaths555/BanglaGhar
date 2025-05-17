@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { Drawer, Box, Typography, TextField, Button } from '@mui/material';
 import Ably from 'ably';
 
-const ably = new Ably.Realtime({ key: 'eCpzJg.2DpgHQ:eZs-ze4b9JGwaEUpEQdUNRSd5hwdjXrstIaStIqu8_o' });
+const ably = new Ably.Realtime({ key: 'uY-82Q.CzXRcg:gtYmlMRZG11ew7O628tQfTcou2XxQQ1V6vZxPEAlyWo' });
 
 const PropertyChat = memo(({ property, onClose }) => {
   console.log('Rendering PropertyChat for property:', property); // Debug log

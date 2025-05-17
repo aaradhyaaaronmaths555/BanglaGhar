@@ -57,7 +57,7 @@ import Ably from "ably";
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 
-const ably = new Ably.Realtime({ key: "eCpzJg.2DpgHQ:eZs-ze4b9JGwaEUpEQdUNRSd5hwdjXrstIaStIqu8_o" });
+const ably = new Ably.Realtime({ key: "uY-82Q.CzXRcg:gtYmlMRZG11ew7O628tQfTcou2XxQQ1V6vZxPEAlyWo" });
 
 // Helper to format price
 const formatDisplayPrice = (price, listingType) => {

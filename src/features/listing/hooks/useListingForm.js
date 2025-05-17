@@ -197,43 +197,52 @@ const useListingForm = () => {
     [formData]
   );
 
-  const generateDescription = useCallback(async () => {
-    setLoadingAI(true);
-    setErrors((prev) => ({ ...prev, description: null }));
-    try {
-      const payload = {
-        propertyData: {
-          basicInfo: {
-            title: formData.title,
-            propertyType: formData.propertyType,
-            listingType: formData.listingType,
-            price: formData.price,
-            area: formData.area,
-            bedrooms: formData.bedrooms,
-            bathrooms: formData.bathrooms,
+  // Accepts an optional language argument: 'en' (default) or 'bn'
+  const generateDescription = useCallback(
+    async (lang = "en") => {
+      setLoadingAI(true);
+      setErrors((prev) => ({ ...prev, description: null }));
+      try {
+        const payload = {
+          propertyData: {
+            basicInfo: {
+              title: formData.title,
+              propertyType: formData.propertyType,
+              listingType: formData.listingType,
+              price: formData.price,
+              area: formData.area,
+              bedrooms: formData.bedrooms,
+              bathrooms: formData.bathrooms,
+            },
+            location: {
+              addressLine1: formData.addressLine1,
+              addressLine2: formData.addressLine2,
+              cityTown: formData.cityTown,
+              upazila: formData.upazila,
+              district: formData.district,
+              postalCode: formData.postalCode,
+            },
+            features,
+            bangladeshDetails: formData.bangladeshDetails,
           },
-          location: {
-            addressLine1: formData.addressLine1,
-            addressLine2: formData.addressLine2,
-            cityTown: formData.cityTown,
-            upazila: formData.upazila,
-            district: formData.district,
-            postalCode: formData.postalCode,
-          },
-          features,
-          bangladeshDetails: formData.bangladeshDetails,
-        },
-      };
-      const res = await axios.post(
-        `${API_BASE_URL}/generate-description`,
-        payload
-      );
-      setFormData((prev) => ({ ...prev, description: res.data.description }));
-    } catch (_) {
-    } finally {
-      setLoadingAI(false);
-    }
-  }, [formData, features]);
+          language: lang, // Pass language to backend
+        };
+        const res = await axios.post(
+          `${API_BASE_URL}/generate-description`,
+          payload
+        );
+        // Only set description if called from the main button, not for AI preview
+        if (lang === "en" || lang === "bn") {
+          return res.data.description;
+        }
+      } catch (_) {
+        // Optionally handle error
+      } finally {
+        setLoadingAI(false);
+      }
+    },
+    [formData, features]
+  );
 
   const handleNext = useCallback(() => {
     if (!validateStep(activeStep)) {

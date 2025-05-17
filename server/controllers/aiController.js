@@ -103,6 +103,7 @@ const generatePropertyDescription = async (req, res) => {
   try {
     // Access the nested propertyData object sent from the frontend
     const propertyDataFromRequest = req.body.propertyData;
+    const language = req.body.language || "en"; // Default to English
     if (
       !propertyDataFromRequest ||
       typeof propertyDataFromRequest !== "object"
@@ -117,9 +118,13 @@ const generatePropertyDescription = async (req, res) => {
     const bdDetails = propertyDataFromRequest.bangladeshDetails || {};
 
     // --- Build the NEW, Detailed Prompt ---
-    const prompt = `
+    let prompt = `
 You are a professional real estate agent writing a property listing for the Bangladeshi market. Generate a compelling and informative 150-200 word description for the following property. Focus on clarity, key selling points, and local context.
-
+`;
+    if (language === "bn") {
+      prompt = `আপনি একজন পেশাদার রিয়েল এস্টেট এজেন্ট, বাংলাদেশের বাজারের জন্য একটি সম্পত্তির তালিকা লিখছেন। নিচের তথ্যের ভিত্তিতে বাংলায় ১৫০-২০০ শব্দের একটি আকর্ষণীয় ও তথ্যবহুল বিবরণ তৈরি করুন। স্পষ্টতা, মূল বিক্রয় পয়েন্ট এবং স্থানীয় প্রেক্ষাপটের উপর জোর দিন।\n`;
+    }
+    prompt += `
 **Property Overview:**
 - Title: ${getSafe(basicInfo, "title")}
 - Property Type: ${getSafe(basicInfo, "propertyType")}
@@ -147,8 +152,14 @@ ${formatFeaturesForPrompt(features)}
 ${formatBangladeshDetailsForPrompt(bdDetails)}
 
 **Instructions:**
-Write an engaging description based *only* on the details provided above. Highlight the most attractive features, benefits of the location, and suitability for potential buyers/renters in Bangladesh. Ensure the tone is professional and inviting. Do not invent details not listed.
 `;
+    if (language === "bn") {
+      prompt +=
+        "শুধুমাত্র উপরের তথ্যের ভিত্তিতে একটি আকর্ষণীয় বিবরণ লিখুন। তালিকাভুক্ত বৈশিষ্ট্য, অবস্থানের সুবিধা এবং বাংলাদেশের সম্ভাব্য ক্রেতা/ভাড়াটিয়াদের জন্য উপযোগিতা তুলে ধরুন। পেশাদার ও আমন্ত্রণমূলক ভাষা ব্যবহার করুন। তালিকাভুক্ত তথ্য ছাড়া অতিরিক্ত কিছু যোগ করবেন না।";
+    } else {
+      prompt +=
+        "Write an engaging description based *only* on the details provided above. Highlight the most attractive features, benefits of the location, and suitability for potential buyers/renters in Bangladesh. Ensure the tone is professional and inviting. Do not invent details not listed.";
+    }
     // --- End of New Prompt ---
 
     console.log("---- Sending Prompt to AI ----\n", prompt); // Log the prompt for debugging
@@ -158,7 +169,9 @@ Write an engaging description based *only* on the details provided above. Highli
         {
           role: "system",
           content:
-            "You are a helpful assistant writing compelling property descriptions for the Bangladeshi market based on provided details.",
+            language === "bn"
+              ? "আপনি একজন সহায়ক সহকারী, বাংলাদেশের বাজারের জন্য বাংলায় আকর্ষণীয় সম্পত্তির বিবরণ লিখছেন।"
+              : "You are a helpful assistant writing compelling property descriptions for the Bangladeshi market based on provided details.",
         },
         { role: "user", content: prompt },
       ],
