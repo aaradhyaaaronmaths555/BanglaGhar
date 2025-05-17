@@ -2,7 +2,6 @@
 import React from "react";
 import "./App.css";
 import {
-  BrowserRouter as Router,
   Routes,
   Route,
   Outlet,
@@ -32,7 +31,6 @@ import Saved from "./pages/Saved";
 import UserProfilePage from "./features/profile/UserProfilePage";
 import AdminRoutes from "./admin/AdminRoutes"; // Import the file defining admin routes
 import AdminProtectedRoute from "./components/common/AdminProtectedRoute"; // Import the guard
-
 // Theme and Context
 import { theme } from "./styles/theme"; // Adjust path if needed
 import { ThemeProvider } from "@mui/material/styles";
@@ -91,7 +89,7 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <SnackbarProvider>
-          <Router>
+         
             {/* Routes are defined here */}
             <Routes>
               {/* Routes using the MainLayout (Navbar/Footer) */}
@@ -119,6 +117,8 @@ function App() {
                 <Route path="/verify-otp" element={<VerifyOtp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/list-property" element={<ListProperty />} />
+                <Route path="/my-chats" element={<ChatManager />} />
+
                 {/* Add other full-page routes without main nav/footer here */}
               </Route>
 
@@ -142,7 +142,7 @@ function App() {
               {/* Optional: Catch-all 404 Not Found Route */}
               {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>
-          </Router>
+  
           {/* Chat Manager */}
           <ChatManager />
         </SnackbarProvider>

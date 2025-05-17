@@ -147,7 +147,7 @@ router.get(
       .withMessage("Invalid listing type filter."), // [cite: 4]
   ],
   handleValidationErrors,
-  propertyController.getAllProperties
+  propertyController.getProperties
 );
 
 // GET /api/properties/:id - Get Property by ID
@@ -170,7 +170,7 @@ router.put(
     // Re-use validations from the POST route but make them optional()
     body("title")
       .optional()
-      .notEmpty()
+      .notEmpty() 
       .trim()
       .escape()
       .withMessage("Title cannot be empty if provided."),

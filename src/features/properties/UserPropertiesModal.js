@@ -3,6 +3,7 @@ import { Modal, Box, List, ListItem, ListItemText, Typography, Divider, Circular
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
 const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
   const { idToken, checkAuthState } = useAuth();
@@ -11,9 +12,18 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
   const [error, setError] = useState(null);
   const modalRef = useRef(null);
   const retryCount = useRef(0);
+  const hasProcessedInitiateChat = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+
+  // Log component mount and props
+  useEffect(() => {
+    console.log('UserPropertiesModal mounted with props:', { open, onSelectChat: typeof onSelectChat, onClose: typeof onClose });
+    if (open && typeof onSelectChat !== 'function') {
+      console.warn('UserPropertiesModal: onSelectChat is not a function, chat selection disabled');
+    }
+  }, [open, onSelectChat]);
 
   const fetchChats = async () => {
     if (!idToken) {
@@ -32,9 +42,10 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
       retryCount.current = 0;
 
       const initiateChatWith = location.state?.initiateChatWith;
-      if (initiateChatWith) {
+      console.log('initiateChatWith:', initiateChatWith);
+      if (initiateChatWith && !hasProcessedInitiateChat.current) {
+        hasProcessedInitiateChat.current = true;
         let partner = { ...initiateChatWith };
-        // If no userId, fetch user details by email
         if (!partner.userId && partner.email) {
           try {
             const userResponse = await axios.get(
@@ -53,15 +64,18 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
             return;
           }
         }
-        // Check for existing chat
         const existingChat = fetchedChats.find(
           (chat) => chat.partner.userId === partner.userId || chat.partner.email === partner.email
         );
         if (existingChat) {
-          onSelectChat(existingChat.partner);
-          navigate('/my-chats', { replace: true, state: {} });
+          if (typeof onSelectChat === 'function') {
+            onSelectChat(existingChat.partner);
+            navigate('/my-chats', { replace: true, state: {} });
+          } else {
+            console.error('onSelectChat is not a function during existing chat selection');
+            setError('Unable to open chat. Please try again.');
+          }
         } else {
-          // Create new chat
           try {
             const chatResponse = await axios.post(
               `${API_BASE_URL}/chats`,
@@ -79,8 +93,13 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
               lastMessage: null,
             };
             setChats((prev) => [...prev, newChat]);
-            onSelectChat(newChat.partner);
-            navigate('/my-chats', { replace: true, state: {} });
+            if (typeof onSelectChat === 'function') {
+              onSelectChat(newChat.partner);
+              navigate('/my-chats', { replace: true, state: {} });
+            } else {
+              console.error('onSelectChat is not a function during new chat creation');
+              setError('Unable to open chat. Please try again.');
+            }
           } catch (chatError) {
             console.error('Error creating chat:', chatError.response?.data || chatError.message);
             setError(chatError.response?.data?.error || 'Failed to start chat. Please try again.');
@@ -109,6 +128,7 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
   useEffect(() => {
     if (open) {
       modalRef.current?.focus();
+      hasProcessedInitiateChat.current = false;
       fetchChats();
     }
   }, [open, idToken]);
@@ -116,6 +136,15 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
   const handleRetry = () => {
     retryCount.current = 0;
     fetchChats();
+  };
+
+  const handleChatClick = (partner) => {
+    if (typeof onSelectChat === 'function') {
+      onSelectChat(partner);
+    } else {
+      console.error('onSelectChat is not a function when clicking chat');
+      setError('Unable to open chat. Please try again.');
+    }
   };
 
   return (
@@ -172,8 +201,9 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
               <ListItem
                 button
                 key={chat.chatId}
-                onClick={() => onSelectChat(chat.partner)}
+                onClick={() => handleChatClick(chat.partner)}
                 sx={{ py: 1, alignItems: 'center' }}
+                disabled={typeof onSelectChat !== 'function'}
               >
                 <Avatar
                   src={chat.partner.picture || undefined}
@@ -194,6 +224,12 @@ const UserPropertiesModal = ({ open, onClose, onSelectChat }) => {
       </Box>
     </Modal>
   );
+};
+
+UserPropertiesModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSelectChat: PropTypes.func, // Made optional
 };
 
 export default UserPropertiesModal;

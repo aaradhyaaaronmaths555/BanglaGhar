@@ -1,6 +1,5 @@
-// src/features/Properties/PropertyDetailPage.js
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link as RouterLink } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Container,
   Box,
@@ -20,10 +19,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Drawer,
-  TextField,
 } from "@mui/material";
-// Existing Icons
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import BedIcon from "@mui/icons-material/Bed";
 import BathtubIcon from "@mui/icons-material/Bathtub";
@@ -32,77 +28,54 @@ import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-// New Icons (Examples - Use appropriate icons)
-import WaterIcon from "@mui/icons-material/Water"; // Water source
-import GasMeterIcon from "@mui/icons-material/GasMeter"; // Gas source
-import BoltIcon from "@mui/icons-material/Bolt"; // Backup power
-import SecurityIcon from "@mui/icons-material/Security"; // Security
-import SchoolIcon from "@mui/icons-material/School"; // Nearby Schools
-import LocalHospitalIcon from "@mui/icons-material/LocalHospital"; // Nearby Hospitals
-import StorefrontIcon from "@mui/icons-material/Storefront"; // Nearby Markets
-import BalconyIcon from "@mui/icons-material/Balcony"; // Balcony
-import GavelIcon from "@mui/icons-material/Gavel"; // Legal
-import BuildIcon from "@mui/icons-material/Build"; // Condition
-import ParkIcon from "@mui/icons-material/Park"; // Garden/Park
-import AcUnitIcon from "@mui/icons-material/AcUnit"; // AC
-import DeckIcon from "@mui/icons-material/Deck"; // Furnished status
-import PoolIcon from "@mui/icons-material/Pool"; // Pool
-import ElevatorIcon from "@mui/icons-material/Elevator"; // Lift (Example)
-
+import WaterIcon from "@mui/icons-material/Water";
+import GasMeterIcon from "@mui/icons-material/GasMeter";
+import BoltIcon from "@mui/icons-material/Bolt";
+import SecurityIcon from "@mui/icons-material/Security";
+import SchoolIcon from "@mui/icons-material/School";
+import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import BalconyIcon from "@mui/icons-material/Balcony";
+import GavelIcon from "@mui/icons-material/Gavel";
+import BuildIcon from "@mui/icons-material/Build";
+import ParkIcon from "@mui/icons-material/Park";
+import AcUnitIcon from "@mui/icons-material/AcUnit";
+import DeckIcon from "@mui/icons-material/Deck";
+import PoolIcon from "@mui/icons-material/Pool";
+import ElevatorIcon from "@mui/icons-material/Elevator";
 import axios from "axios";
-import { useAuth } from "../../../context/AuthContext"; // Adjust path if needed
-import useWishlist from "./../hooks/useWishlist"; // Adjust path if needed
-import Ably from "ably";
+import { useAuth } from "../../../context/AuthContext";
+import useWishlist from "./../hooks/useWishlist";
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:5001/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 
-const ably = new Ably.Realtime({ key: "eCpzJg.2DpgHQ:eZs-ze4b9JGwaEUpEQdUNRSd5hwdjXrstIaStIqu8_o" });
-
-// Helper to format price
 const formatDisplayPrice = (price, listingType) => {
   if (price === null || price === undefined) return "N/A";
   const numericPrice = Number(price);
   if (isNaN(numericPrice)) return "Invalid Price";
-  return `৳ ${numericPrice.toLocaleString()}${
-    listingType === "rent" ? "/mo" : ""
-  }`;
+  return `৳ ${numericPrice.toLocaleString()}${listingType === "rent" ? "/mo" : ""}`;
 };
 
-// Helper to display formatted text or fallback
 const displayText = (value, fallback = "N/A") => value || fallback;
 
-// Helper to display boolean/enum/array values nicely
-const formatFeatureText = (value, t) => {
-  // Add translation function if needed
-  if (value === true || value === "yes" || value === "clear") return "Yes"; // t('yes', 'Yes');
-  if (value === false || value === "no") return "No"; // t('no', 'No');
+const formatFeatureText = (value) => {
+  if (value === true || value === "yes" || value === "clear") return "Yes";
+  if (value === false || value === "no") return "No";
   if (Array.isArray(value))
     return value.length > 0
       ? value.map((v) => v.charAt(0).toUpperCase() + v.slice(1)).join(", ")
-      : "None"; // t('none', 'None');
-  if (typeof value === "string" && value) {
-    // Attempt translation for known enum values, otherwise capitalize
-    // Example: return t(`enum_${value}`, value.charAt(0).toUpperCase() + value.slice(1));
-    return value.charAt(0).toUpperCase() + value.slice(1); // Simple capitalize for now
-  }
-  return value ?? "N/A"; // t('na', 'N/A');
+      : "None";
+  if (typeof value === "string" && value)
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  return value ?? "N/A";
 };
 
-// Helper to create list items concisely
 const DetailListItem = ({ icon, primary, secondary }) => {
-  if (
-    !secondary ||
-    secondary === "N/A" ||
-    secondary === "No" ||
-    secondary === "None"
-  )
-    return null; // Don't render if value is trivial/missing
+  if (!secondary || secondary === "N/A" || secondary === "No" || secondary === "None")
+    return null;
   return (
     <ListItem disablePadding>
-      <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>
-        {icon}
-      </ListItemIcon>
+      <ListItemIcon sx={{ minWidth: 36, color: "primary.main" }}>{icon}</ListItemIcon>
       <ListItemText
         primary={primary}
         secondary={secondary}
@@ -118,22 +91,11 @@ const PropertyDetailPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { wishlistIds, toggleWishlist, loadingWishlist } = useWishlist();
-
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info",
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
 
-  const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false); // Track subscription state
-
-  // Fetching Logic
   const fetchPropertyDetails = useCallback(async () => {
     if (!propertyId) {
       setError("Property ID is missing.");
@@ -143,9 +105,7 @@ const PropertyDetailPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/properties/${propertyId}`
-      );
+      const response = await axios.get(`${API_BASE_URL}/properties/${propertyId}`);
       if (response.data) {
         setProperty(response.data);
       } else {
@@ -163,54 +123,49 @@ const PropertyDetailPage = () => {
     fetchPropertyDetails();
   }, [fetchPropertyDetails]);
 
-  // Wishlist and Snackbar handlers
   const handleWishlistToggle = () => {
     if (!property || !property._id) return;
     toggleWishlist(property._id, (message, severity) => {
       setSnackbar({ open: true, message, severity });
     });
   };
+
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
-  const handleChatOpen = async () => {
-    setChatOpen(true);
-    const channel = ably.channels.get(`property-${propertyId}`); // Use propertyId as the channel name
-
-    // Fetch existing messages
-    try {
-      const messagesPage = await channel.history({ limit: 50 }); // Fetch up to 50 messages
-      const existingMessages = messagesPage.items.reverse(); // Reverse the order to show oldest first
-      setMessages(existingMessages);
-    } catch (error) {
-      console.error('Error fetching chat history:', error);
-    }
-
-    // Subscribe to new messages if not already subscribed
-    if (!isSubscribed) {
-      channel.subscribe((msg) => {
-        setMessages((prev) => [...prev, msg]);
+  const handleContactOwner = () => {
+    if (!user) {
+      setSnackbar({
+        open: true,
+        message: "Please log in to chat with the owner.",
+        severity: "warning",
       });
-      setIsSubscribed(true); // Mark as subscribed
+      return;
     }
+    if (!property?.createdBy && !property?.ownerId) {
+      setSnackbar({
+        open: true,
+        message: "Owner information not available.",
+        severity: "error",
+      });
+      return;
+    }
+    // Use ownerId if available, fallback to createdBy (email) for lookup
+    const chatPartner = {
+      userId: property.ownerId || null,
+      email: property.ownerEmail || property.createdBy || "unknown@email.com",
+      name: property.ownerName || "Property Owner",
+      picture: property.ownerPicture || null,
+    };
+    navigate("/my-chats", {
+      state: {
+        initiateChatWith: chatPartner,
+      },
+    });
   };
 
-  const handleChatClose = () => {
-    const channel = ably.channels.get(`property-${propertyId}`);
-    channel.unsubscribe(); // Unsubscribe when the modal is closed
-    setIsSubscribed(false); // Reset subscription state
-    setChatOpen(false);
-  };
-
-  const sendMessage = async () => {
-    const channel = ably.channels.get(`property-${propertyId}`); // Use propertyId as the channel name
-    await channel.publish("message", { sender: user.email, text: message });
-    setMessage("");
-  };
-
-  // --- Render Logic ---
   if (loading)
     return (
       <Container sx={{ py: 4, textAlign: "center" }}>
@@ -222,11 +177,7 @@ const PropertyDetailPage = () => {
     return (
       <Container sx={{ py: 4 }}>
         <Alert severity="error">{error}</Alert>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 2 }}>
           Back
         </Button>
       </Container>
@@ -235,17 +186,12 @@ const PropertyDetailPage = () => {
     return (
       <Container sx={{ py: 4 }}>
         <Alert severity="warning">Property data not available.</Alert>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 2 }}>
           Back
         </Button>
       </Container>
     );
 
-  // Prepare data for rendering
   const placeholderImg = `/pictures/placeholder.png`;
   const imgSrc =
     Array.isArray(property.images) && property.images.length > 0
@@ -257,7 +203,6 @@ const PropertyDetailPage = () => {
   };
   const isWishlisted = wishlistIds.has(property._id);
 
-  // Construct location string
   const locationString =
     [
       property.addressLine1,
@@ -277,185 +222,105 @@ const PropertyDetailPage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate(-1)}
-        sx={{ mb: 2 }}
-      >
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mb: 2 }}>
         Back to Listings
       </Button>
       <Paper elevation={3} sx={{ borderRadius: "12px", overflow: "hidden" }}>
         <Grid container>
-          {/* Image Section */}
           <Grid item xs={12} md={7}>
             <CardMedia
               component="img"
               image={imgSrc}
               alt={property.title || "Property image"}
               onError={handleImageError}
-              sx={{
-                width: "100%",
-                height: { xs: 300, md: 500 },
-                objectFit: "cover",
-              }}
+              sx={{ width: "100%", height: { xs: 300, md: 500 }, objectFit: "cover" }}
             />
-            {/* Consider Image Carousel Here */}
           </Grid>
-
-          {/* Details Section */}
           <Grid item xs={12} md={5}>
             <Box
-              sx={{
-                p: { xs: 2, md: 3 },
-                display: "flex",
-                flexDirection: "column",
-                height: "100%",
-              }}
+              sx={{ p: { xs: 2, md: 3 }, display: "flex", flexDirection: "column", height: "100%" }}
             >
               <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  mb: 1,
-                }}
+                sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}
               >
                 <Chip
                   label={formatFeatureText(property.listingType)}
                   size="small"
-                  color={
-                    property.listingType === "sold" ? "default" : "primary"
-                  }
+                  color={property.listingType === "sold" ? "default" : "primary"}
                   variant="filled"
                 />
-                <Tooltip
-                  title={
-                    isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"
-                  }
-                  arrow
-                >
+                <Tooltip title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"} arrow>
                   <span>
-                    {" "}
-                    {/* Span needed for tooltip on disabled button */}
                     <IconButton
                       onClick={handleWishlistToggle}
                       size="small"
                       disabled={loadingWishlist}
                     >
-                      {isWishlisted ? (
-                        <FavoriteIcon color="error" />
-                      ) : (
-                        <FavoriteBorderIcon />
-                      )}
+                      {isWishlisted ? <FavoriteIcon color="error" /> : <FavoriteBorderIcon />}
                     </IconButton>
                   </span>
                 </Tooltip>
               </Box>
-
-              <Typography
-                variant="h4"
-                component="h1"
-                fontWeight="600"
-                gutterBottom
-              >
+              <Typography variant="h4" component="h1" fontWeight="600" gutterBottom>
                 {displayText(property.title)}
               </Typography>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  color: "text.secondary",
-                  mb: 2,
-                }}
-              >
-                <LocationOnIcon
-                  sx={{ fontSize: "1.1rem", mr: 0.5, color: "primary.main" }}
-                />
+              <Box sx={{ display: "flex", alignItems: "center", color: "text.secondary", mb: 2 }}>
+                <LocationOnIcon sx={{ fontSize: "1.1rem", mr: 0.5, color: "primary.main" }} />
                 <Typography variant="body1">{locationString}</Typography>
               </Box>
-
-              <Typography
-                variant="h4"
-                color="primary.main"
-                fontWeight="700"
-                sx={{ mb: 2 }}
-              >
+              <Typography variant="h4" color="primary.main" fontWeight="700" sx={{ mb: 2 }}>
                 {formatDisplayPrice(property.price, property.listingType)}
               </Typography>
-
               <Divider sx={{ my: 1 }} />
-
-              {/* --- Overview Section --- */}
-              <Typography variant="h6" gutterBottom>
-                Overview
-              </Typography>
+              <Typography variant="h6" gutterBottom>Overview</Typography>
               <Grid container spacing={1.5} sx={{ mb: 2 }}>
-                {!isLandOrCommercial && (
-                  <>
-                    <Grid item xs={6} sm={4}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <BedIcon color="action" fontSize="small" />
-                        <Typography variant="body2">
-                          {displayText(property.bedrooms)} Beds
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6} sm={4}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <BathtubIcon color="action" fontSize="small" />
-                        <Typography variant="body2">
-                          {displayText(property.bathrooms)} Baths
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </>
+                {!isLandOrCommercial && property.bedrooms > 0 && (
+                  <Grid item xs={6} sm={4}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <BedIcon color="action" fontSize="small" />
+                      <Typography variant="body2">{displayText(property.bedrooms)} Beds</Typography>
+                    </Box>
+                  </Grid>
+                )}
+                {!isLandOrCommercial && property.bathrooms > 0 && (
+                  <Grid item xs={6} sm={4}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <BathtubIcon color="action" fontSize="small" />
+                      <Typography variant="body2">{displayText(property.bathrooms)} Baths</Typography>
+                    </Box>
+                  </Grid>
+                )}
+                {property.area && (
+                  <Grid item xs={6} sm={4}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <SquareFootIcon color="action" fontSize="small" />
+                      <Typography variant="body2">{displayText(property.area)} sqft</Typography>
+                    </Box>
+                  </Grid>
                 )}
                 <Grid item xs={6} sm={4}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <SquareFootIcon color="action" fontSize="small" />
-                    <Typography variant="body2">
-                      {displayText(property.area)} sqft
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <HomeWorkIcon color="action" fontSize="small" />
-                    <Typography variant="body2">
-                      {formatFeatureText(property.propertyType)}
-                    </Typography>
+                    <Typography variant="body2">{formatFeatureText(property.propertyType)}</Typography>
                   </Box>
                 </Grid>
                 {!isLandOrCommercial && features.furnished !== "no" && (
                   <Grid item xs={6} sm={4}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <DeckIcon color="action" fontSize="small" />
-                      <Typography variant="body2">
-                        {formatFeatureText(features.furnished)}
-                      </Typography>
+                      <Typography variant="body2">{formatFeatureText(features.furnished)}</Typography>
                     </Box>
                   </Grid>
                 )}
-                {/* Add more standard features if desired */}
-                {features.parking === true && !isLandOrCommercial && (
+                {features.parking && !isLandOrCommercial && (
                   <Grid item xs={6} sm={4}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      {
-                        /* Parking Icon Optional */ <HomeWorkIcon
-                          color="action"
-                          fontSize="small"
-                        />
-                      }
+                      <HomeWorkIcon color="action" fontSize="small" />
                       <Typography variant="body2">Parking</Typography>
                     </Box>
                   </Grid>
                 )}
-                {features.garden === true && !isLandOrCommercial && (
+                {features.garden && !isLandOrCommercial && (
                   <Grid item xs={6} sm={4}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <ParkIcon color="action" fontSize="small" />
@@ -463,7 +328,7 @@ const PropertyDetailPage = () => {
                     </Box>
                   </Grid>
                 )}
-                {features.pool === true && !isLandOrCommercial && (
+                {features.pool && !isLandOrCommercial && (
                   <Grid item xs={6} sm={4}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <PoolIcon color="action" fontSize="small" />
@@ -471,7 +336,7 @@ const PropertyDetailPage = () => {
                     </Box>
                   </Grid>
                 )}
-                {features.airConditioning === true && !isLandOrCommercial && (
+                {features.airConditioning && !isLandOrCommercial && (
                   <Grid item xs={6} sm={4}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <AcUnitIcon color="action" fontSize="small" />
@@ -480,13 +345,8 @@ const PropertyDetailPage = () => {
                   </Grid>
                 )}
               </Grid>
-
               <Divider sx={{ my: 1 }} />
-
-              {/* --- Description --- */}
-              <Typography variant="h6" gutterBottom>
-                Description
-              </Typography>
+              <Typography variant="h6" gutterBottom>Description</Typography>
               <Typography
                 variant="body2"
                 paragraph
@@ -494,34 +354,22 @@ const PropertyDetailPage = () => {
               >
                 {displayText(property.description, "No description available.")}
               </Typography>
-
-              {/* --- Detailed Features Section --- */}
-              <Typography variant="h6" gutterBottom>
-                Details & Features
-              </Typography>
-              <Box
-                sx={{
-                  maxHeight: "250px",
-                  overflowY: "auto",
-                  mb: 2,
-                  pr: 1 /* For scrollbar */,
-                }}
-              >
+              <Typography variant="h6" gutterBottom>Details & Features</Typography>
+              <Box sx={{ maxHeight: "250px", overflowY: "auto", mb: 2, pr: 1 }}>
                 <List dense>
-                  {/* Examples using DetailListItem helper */}
                   <DetailListItem
                     icon={<BuildIcon fontSize="small" />}
                     primary="Condition"
                     secondary={formatFeatureText(bdDetails.propertyCondition)}
                   />
-                  {!isLandOrCommercial && (
+                  {!isLandOrCommercial && property.bedrooms > 0 && (
                     <DetailListItem
                       icon={<BedIcon fontSize="small" />}
                       primary="Bedrooms"
                       secondary={displayText(property.bedrooms)}
                     />
                   )}
-                  {!isLandOrCommercial && (
+                  {!isLandOrCommercial && property.bathrooms > 0 && (
                     <DetailListItem
                       icon={<BathtubIcon fontSize="small" />}
                       primary="Bathrooms"
@@ -531,11 +379,7 @@ const PropertyDetailPage = () => {
                   <DetailListItem
                     icon={<SquareFootIcon fontSize="small" />}
                     primary="Area"
-                    secondary={
-                      property.area
-                        ? `${displayText(property.area)} sqft`
-                        : "N/A"
-                    }
+                    secondary={property.area ? `${displayText(property.area)} sqft` : "N/A"}
                   />
                   {!isLandOrCommercial && (
                     <DetailListItem
@@ -558,9 +402,7 @@ const PropertyDetailPage = () => {
                       secondary={displayText(bdDetails.totalFloors)}
                     />
                   )}
-
                   <Divider sx={{ my: 1 }} component="li" />
-
                   <DetailListItem
                     icon={<WaterIcon fontSize="small" />}
                     primary="Water Source"
@@ -591,32 +433,28 @@ const PropertyDetailPage = () => {
                   <DetailListItem
                     icon={<BuildIcon fontSize="small" />}
                     primary="Earthquake Resistant"
-                    secondary={formatFeatureText(
-                      bdDetails.earthquakeResistance
-                    )}
+                    secondary={formatFeatureText(bdDetails.earthquakeResistance)}
                   />
                   <DetailListItem
                     icon={<HomeWorkIcon fontSize="small" />}
                     primary="Parking Type"
                     secondary={formatFeatureText(bdDetails.parkingType)}
                   />
-                  {!isLandOrCommercial && (
+                  {!isLandOrCommercial && bdDetails.balcony && (
                     <DetailListItem
                       icon={<BalconyIcon fontSize="small" />}
                       primary="Balcony"
                       secondary={formatFeatureText(bdDetails.balcony)}
                     />
                   )}
-                  {!isLandOrCommercial && (
+                  {!isLandOrCommercial && bdDetails.rooftopAccess && (
                     <DetailListItem
                       icon={<DeckIcon fontSize="small" />}
                       primary="Rooftop Access"
                       secondary={formatFeatureText(bdDetails.rooftopAccess)}
                     />
                   )}
-
                   <Divider sx={{ my: 1 }} component="li" />
-
                   <DetailListItem
                     icon={<GavelIcon fontSize="small" />}
                     primary="Ownership Papers"
@@ -627,8 +465,6 @@ const PropertyDetailPage = () => {
                     primary="Property Tenure"
                     secondary={formatFeatureText(bdDetails.propertyTenure)}
                   />
-
-                  {/* Add more items for nearby amenities etc. */}
                   {bdDetails.nearbySchools && (
                     <DetailListItem
                       icon={<SchoolIcon fontSize="small" />}
@@ -650,25 +486,15 @@ const PropertyDetailPage = () => {
                       secondary={displayText(bdDetails.nearbyMarkets)}
                     />
                   )}
-
-                  {/* Add other fields from bangladeshDetails */}
                 </List>
               </Box>
-
-              {/* Contact Owner section */}
               <Box sx={{ mt: "auto", pt: 2 }}>
                 <Divider sx={{ mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Contact Owner/Agent
-                </Typography>
-                {/* TODO: Add actual contact display/button logic */}
-                <Button variant="contained" fullWidth>
-                  Show Contact Info
-                </Button>
+                <Typography variant="h6" gutterBottom>Contact Owner/Agent</Typography>
                 <Button
                   variant="contained"
                   fullWidth
-                  onClick={handleChatOpen}
+                  onClick={handleContactOwner}
                   sx={{ mt: 2 }}
                 >
                   Chat with Owner
@@ -678,31 +504,6 @@ const PropertyDetailPage = () => {
           </Grid>
         </Grid>
       </Paper>
-      {/* Chat Drawer */}
-      <Drawer anchor="right" open={chatOpen} onClose={handleChatClose}>
-        <Box sx={{ width: 300, p: 2 }}>
-          <Typography variant="h6">Chat with Owner</Typography>
-          <Box sx={{ height: 400, overflowY: "auto", my: 2 }}>
-            {messages.map((msg, index) => (
-              <Typography key={index} variant="body2">
-                <strong>{msg.data.sender}:</strong> {msg.data.text}
-              </Typography>
-            ))}
-          </Box>
-          <TextField
-            fullWidth
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type a message..."
-            variant="outlined"
-            sx={{ mb: 2 }}
-          />
-          <Button variant="contained" fullWidth onClick={sendMessage}>
-            Send
-          </Button>
-        </Box>
-      </Drawer>
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

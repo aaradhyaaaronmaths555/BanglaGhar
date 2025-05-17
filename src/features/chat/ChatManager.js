@@ -1,46 +1,62 @@
-import React, { useState, useCallback } from 'react';
-import ChatIcon from '@mui/icons-material/Chat';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Chat } from '@mui/icons-material';
 import { Fab, Box } from '@mui/material';
 import UserPropertiesModal from './UserPropertiesModal';
 import PropertyChat from './PropertyChat';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const ChatManager = () => {
-  const [propertiesModalOpen, setPropertiesModalOpen] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [selectedChatPartner, setSelectedChatPartner] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const handleOpenPropertiesModal = useCallback(() => {
-    setPropertiesModalOpen(true);
+  const handleOpenChatModal = useCallback(() => {
+    setChatModalOpen(true);
+    if (location.pathname !== '/my-chats') {
+      navigate('/my-chats', { replace: true });
+    }
+  }, [navigate, location.pathname]);
+
+  const handleCloseChatModal = useCallback(() => {
+    setChatModalOpen(false);
+    if (location.pathname === '/my-chats') {
+      navigate(-1);
+    }
+  }, [navigate, location.pathname]);
+
+  const handleSelectChat = useCallback((partner) => {
+    if (partner?.userId) {
+      setSelectedChatPartner(partner);
+      setChatModalOpen(false);
+    } else {
+      console.warn('Invalid chat partner selected:', partner);
+    }
   }, []);
 
-  const handleClosePropertiesModal = useCallback(() => {
-    setPropertiesModalOpen(false);
-    setSelectedProperty(null);
-  }, []);
-
-  const handleSelectProperty = useCallback((property) => {
-    setSelectedProperty(property);
-    setPropertiesModalOpen(false); // Close the property modal when a property is selected
-  }, []);
+  useEffect(() => {
+    if (location.pathname === '/my-chats' && !chatModalOpen && !selectedChatPartner) {
+      setChatModalOpen(true);
+    }
+  }, [location.pathname, chatModalOpen, selectedChatPartner]);
 
   return (
     <>
-      {/* Chat Icon */}
-      <Box sx={{ position: 'fixed', bottom: 16, left: 16 }}>
-        <Fab color="primary" onClick={handleOpenPropertiesModal}>
-          <ChatIcon />
+      <Box sx={{ position: 'fixed', bottom: 16, left: 16, zIndex: 1300 }}>
+        <Fab color="primary" onClick={handleOpenChatModal} aria-label="My Chats">
+          <Chat />
         </Fab>
       </Box>
-      {/* User Properties Modal */}
       <UserPropertiesModal
-        open={propertiesModalOpen}
-        onClose={handleClosePropertiesModal}
-        onSelectProperty={handleSelectProperty}
+        open={chatModalOpen}
+        onClose={handleCloseChatModal}
+        onSelectChat={handleSelectChat}
       />
-      {/* Property Chat */}
-      {selectedProperty && (
+      {selectedChatPartner && (
         <PropertyChat
-          property={selectedProperty}
-          onClose={() => setSelectedProperty(null)}
+          chatPartner={selectedChatPartner}
+          onClose={() => setSelectedChatPartner(null)}
+          open={!!selectedChatPartner}
         />
       )}
     </>

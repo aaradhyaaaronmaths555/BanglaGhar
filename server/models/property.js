@@ -116,6 +116,8 @@ const propertySchema = new mongoose.Schema(
     // Description & Images
     description: { type: String },
     images: [{ type: String }], // Store image URLs or keys
+    
+    ownerId: { type: String }, // Store Cognito sub
 
     // Ownership & Timestamps
     createdBy: { type: String, required: true }, // Keep as String (stores user email)
