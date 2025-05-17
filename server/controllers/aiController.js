@@ -101,6 +101,9 @@ const formatBangladeshDetailsForPrompt = (bdDetails = {}) => {
 
 const generatePropertyDescription = async (req, res) => {
   try {
+    // Debug: Log the language received from frontend
+    console.log("[AIController] Received language:", req.body.language);
+
     // Access the nested propertyData object sent from the frontend
     const propertyDataFromRequest = req.body.propertyData;
     const language = req.body.language || "en"; // Default to English
@@ -118,49 +121,20 @@ const generatePropertyDescription = async (req, res) => {
     const bdDetails = propertyDataFromRequest.bangladeshDetails || {};
 
     // --- Build the NEW, Detailed Prompt ---
-    let prompt = `
-You are a professional real estate agent writing a property listing for the Bangladeshi market. Generate a compelling and informative 150-200 word description for the following property. Focus on clarity, key selling points, and local context.
-`;
+    let prompt = "";
     if (language === "bn") {
-      prompt = `আপনি একজন পেশাদার রিয়েল এস্টেট এজেন্ট, বাংলাদেশের বাজারের জন্য একটি সম্পত্তির তালিকা লিখছেন। নিচের তথ্যের ভিত্তিতে বাংলায় ১৫০-২০০ শব্দের একটি আকর্ষণীয় ও তথ্যবহুল বিবরণ তৈরি করুন। স্পষ্টতা, মূল বিক্রয় পয়েন্ট এবং স্থানীয় প্রেক্ষাপটের উপর জোর দিন।\n`;
-    }
-    prompt += `
-**Property Overview:**
-- Title: ${getSafe(basicInfo, "title")}
-- Property Type: ${getSafe(basicInfo, "propertyType")}
-- Listing Type: For ${getSafe(basicInfo, "listingType")}
-- Price: ${getSafe(basicInfo, "price")} BDT ${
-      basicInfo.listingType === "rent" ? "/month" : ""
-    }
-- Size: ${getSafe(basicInfo, "area")} sqft
-- Bedrooms: ${getSafe(basicInfo, "bedrooms", "N/A (Land/Commercial)")}
-- Bathrooms: ${getSafe(basicInfo, "bathrooms", "N/A (Land/Commercial)")}
-
-**Location:**
-- Address: ${getSafe(location, "addressLine1")}${
-      location.addressLine2 ? `, ${location.addressLine2}` : ""
-    }
-- Area/Town: ${getSafe(location, "cityTown")}
-- Upazila/Thana: ${getSafe(location, "upazila")}
-- District: ${getSafe(location, "district")}
-- Postal Code: ${getSafe(location, "postalCode")}
-
-**Standard Features:**
-${formatFeaturesForPrompt(features)}
-
-**Specific Details & Local Context:**
-${formatBangladeshDetailsForPrompt(bdDetails)}
-
-**Instructions:**
+      prompt = `আপনি বাংলাদেশের বাজারের জন্য একজন দক্ষ রিয়েল এস্টেট কপিরাইটার। নিচের তথ্যের ভিত্তিতে বাংলায় ১৫০-২০০ শব্দের একটি আকর্ষণীয়, আবেগঘন ও মনোমুগ্ধকর সম্পত্তির বিবরণ লিখুন।
+- তথ্যগুলোকে সংলগ্ন ও প্রাসঙ্গিকভাবে ব্যবহার করুন, যেন বর্ণনাটি স্বাভাবিক ও মানবিক শোনায়।
+- বাড়ির পরিবেশ, সুযোগ-সুবিধা, এবং আশেপাশের বৈশিষ্ট্যগুলো এমনভাবে তুলে ধরুন, যেন পাঠক নিজেকে এখানে বসবাস করতে কল্পনা করতে পারে।
+- ভাষা যেন সাবলীল, আন্তরিক ও আমন্ত্রণমূলক হয়, অপ্রয়োজনীয় অতিরঞ্জন বা প্রচলিত বাক্য (যেমন: "শহরের প্রাণকেন্দ্রে") এড়িয়ে চলুন।
+- শুধুমাত্র দেওয়া তথ্য ব্যবহার করুন, নতুন কিছু যোগ করবেন না।
+- নীচের সুযোগ-সুবিধা ও বিবরণাদি ইংরেজিতে দেওয়া হয়েছে, আপনি বাংলায় অনুবাদ করে বর্ণনায় ব্যবহার করুন।
 `;
-    if (language === "bn") {
-      prompt +=
-        "শুধুমাত্র উপরের তথ্যের ভিত্তিতে একটি আকর্ষণীয় বিবরণ লিখুন। তালিকাভুক্ত বৈশিষ্ট্য, অবস্থানের সুবিধা এবং বাংলাদেশের সম্ভাব্য ক্রেতা/ভাড়াটিয়াদের জন্য উপযোগিতা তুলে ধরুন। পেশাদার ও আমন্ত্রণমূলক ভাষা ব্যবহার করুন। তালিকাভুক্ত তথ্য ছাড়া অতিরিক্ত কিছু যোগ করবেন না।";
     } else {
-      prompt +=
-        "Write an engaging description based *only* on the details provided above. Highlight the most attractive features, benefits of the location, and suitability for potential buyers/renters in Bangladesh. Ensure the tone is professional and inviting. Do not invent details not listed.";
+      prompt = `You are an expert real estate copywriter for the Bangladeshi market. Write a captivating, emotionally engaging, and highly appealing property description (150-200 words) for the listing below.\n- Paint a vivid picture of the lifestyle, comfort, and unique advantages this property offers.\n- Highlight what makes this home stand out, using expressive and inviting language.\n- Mention the ambiance, neighborhood vibe, and any special features that would excite buyers or renters.\n- Make the reader imagine living here and feeling at home.\n- Use a warm, story-like tone, not just a list of facts.\n- Do not invent details not provided.\n`;
     }
-    // --- End of New Prompt ---
+    prompt += `\n**Property Overview:**\n- Title: ${getSafe(basicInfo, "title")}\n- Property Type: ${getSafe(basicInfo, "propertyType")}\n- Listing Type: For ${getSafe(basicInfo, "listingType")}\n- Price: ${getSafe(basicInfo, "price")} BDT ${basicInfo.listingType === "rent" ? "/month" : ""}\n- Size: ${getSafe(basicInfo, "area")} sqft\n- Bedrooms: ${getSafe(basicInfo, "bedrooms", "N/A (Land/Commercial)")}\n- Bathrooms: ${getSafe(basicInfo, "bathrooms", "N/A (Land/Commercial)")}\n\n**Location:**\n- Address: ${getSafe(location, "addressLine1")}${location.addressLine2 ? `, ${location.addressLine2}` : ""}\n- Area/Town: ${getSafe(location, "cityTown")}\n- Upazila/Thana: ${getSafe(location, "upazila")}\n- District: ${getSafe(location, "district")}\n- Postal Code: ${getSafe(location, "postalCode")}\n\n**Standard Features:**\n${formatFeaturesForPrompt(features)}\n\n**Specific Details & Local Context:**\n${formatBangladeshDetailsForPrompt(bdDetails)}\n`;
+    // --- End of Improved Prompt ---
 
     console.log("---- Sending Prompt to AI ----\n", prompt); // Log the prompt for debugging
 
@@ -170,12 +144,12 @@ ${formatBangladeshDetailsForPrompt(bdDetails)}
           role: "system",
           content:
             language === "bn"
-              ? "আপনি একজন সহায়ক সহকারী, বাংলাদেশের বাজারের জন্য বাংলায় আকর্ষণীয় সম্পত্তির বিবরণ লিখছেন।"
+              ? "আপনি একজন সহায়ক সহকারী, বাংলাদেশের বাজারের জন্য বাংলায় আকর্ষণীয় সম্পত্তির বিবরণ লিখছেন। নোট করুন: সুযোগ-সুবিধা ও অন্যান্য তথ্য ইংরেজিতে দেওয়া হয়েছে, আপনি বাংলায় অনুবাদ করে বর্ণনায় ব্যবহার করুন।"
               : "You are a helpful assistant writing compelling property descriptions for the Bangladeshi market based on provided details.",
         },
         { role: "user", content: prompt },
       ],
-      model: process.env.AI_MODEL || "mistralai/Mistral-7B-Instruct-v0.2", // Use env var for model if needed
+      model: process.env.AI_MODEL || "gpt-3.5-turbo", // Use a widely available model for compatibility
       // max_tokens: 250, // Optional: Limit response length
       // temperature: 0.7, // Optional: Adjust creativity
     });
