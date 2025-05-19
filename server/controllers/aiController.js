@@ -1,12 +1,11 @@
 // server/controllers/aiController.js
 
-const OpenAI = require("openai");
+const fetch = require("node-fetch"); // Add fetch for Gemini API
+const axios = require("axios");
 
-// Configure OpenAI client from env
-const openai = new OpenAI({
-  baseURL: process.env.OPENAI_API_BASE_URL || "https://api.aimlapi.com/v1", // Default to aimlapi if needed
-  apiKey: process.env.AIML_API_KEY || process.env.OPENAI_API_KEY, // Check both potential env var names
-});
+const GEMINI_API_KEY = "AIzaSyBSAu5E_5DsvPdvdgI1BEciA200sNQD7UI";
+const NVIDIA_API_KEY = "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";
+const NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 
 // Helper function to safely access nested properties
 const getSafe = (obj, path, defaultValue = "N/A") => {
@@ -122,52 +121,86 @@ const generatePropertyDescription = async (req, res) => {
 
     // --- Build the NEW, Detailed Prompt ---
     let prompt = "";
-    if (language === "bn") {
-      prompt = `আপনি বাংলাদেশের বাজারের জন্য একজন দক্ষ রিয়েল এস্টেট কপিরাইটার। নিচের তথ্যের ভিত্তিতে বাংলায় ১৫০-২০০ শব্দের একটি আকর্ষণীয়, আবেগঘন ও মনোমুগ্ধকর সম্পত্তির বিবরণ লিখুন।
-- তথ্যগুলোকে সংলগ্ন ও প্রাসঙ্গিকভাবে ব্যবহার করুন, যেন বর্ণনাটি স্বাভাবিক ও মানবিক শোনায়।
-- বাড়ির পরিবেশ, সুযোগ-সুবিধা, এবং আশেপাশের বৈশিষ্ট্যগুলো এমনভাবে তুলে ধরুন, যেন পাঠক নিজেকে এখানে বসবাস করতে কল্পনা করতে পারে।
-- ভাষা যেন সাবলীল, আন্তরিক ও আমন্ত্রণমূলক হয়, অপ্রয়োজনীয় অতিরঞ্জন বা প্রচলিত বাক্য (যেমন: "শহরের প্রাণকেন্দ্রে") এড়িয়ে চলুন।
-- শুধুমাত্র দেওয়া তথ্য ব্যবহার করুন, নতুন কিছু যোগ করবেন না।
-- নীচের সুযোগ-সুবিধা ও বিবরণাদি ইংরেজিতে দেওয়া হয়েছে, আপনি বাংলায় অনুবাদ করে বর্ণনায় ব্যবহার করুন।
+    
+    
+      prompt = `You are an expert real estate copywriter with deep understanding of the Bangladeshi property market, local culture, and what appeals to buyers and renters in different segments. Write a warm, emotionally engaging, and highly appealing property description for the listing below.
+
+**Instructions:**
+- The tone should be inviting, descriptive, and story-driven—like a trusted friend or real estate advisor is narrating the experience of living in the home.
+- Highlight the **unique lifestyle advantages** this property offers, not just its features.
+- Emphasize **comfort, ambiance, and neighborhood character**—make the reader imagine walking through the space and feeling at home.
+- Draw attention to **standout features**, such as views, balconies, natural light, peaceful surroundings, or convenient access to roads, markets, schools, mosques, hospitals, etc.—but only if included in the data provided.
+- Incorporate **cultural references or habits** where appropriate, such as the value of separate dining space for family gatherings, prayer space, veranda tea time, or close-knit community living.
+- Never make up facts—only use what's provided in the listing details.
+- Focus on clarity, warmth, and a strong sense of place.
+- Avoid sounding robotic, overly generic, or like a simple feature list.
+- give response in simple txt format, no markdown or code block
+- (IMPORTANT) PLEASE GIVE ME THE RESPONSE IN ${language} LANGUAGE. the translation should be accurate and natural, not just a direct word-for-word translation. if possible use google translate api to get the translation. if you can't use google translate api, then use your own translation model to get the translation. but please make sure the translation is accurate and natural.
+- avoid using like in the heart of dhaka or in the heart of dhaka city, instead use like in dhaka city or in dhaka or anything more specific.
+
+Length: 150–200 words
 `;
-    } else {
-      prompt = `You are an expert real estate copywriter for the Bangladeshi market. Write a captivating, emotionally engaging, and highly appealing property description (150-200 words) for the listing below.\n- Paint a vivid picture of the lifestyle, comfort, and unique advantages this property offers.\n- Highlight what makes this home stand out, using expressive and inviting language.\n- Mention the ambiance, neighborhood vibe, and any special features that would excite buyers or renters.\n- Make the reader imagine living here and feeling at home.\n- Use a warm, story-like tone, not just a list of facts.\n- Do not invent details not provided.\n`;
-    }
-    prompt += `\n**Property Overview:**\n- Title: ${getSafe(basicInfo, "title")}\n- Property Type: ${getSafe(basicInfo, "propertyType")}\n- Listing Type: For ${getSafe(basicInfo, "listingType")}\n- Price: ${getSafe(basicInfo, "price")} BDT ${basicInfo.listingType === "rent" ? "/month" : ""}\n- Size: ${getSafe(basicInfo, "area")} sqft\n- Bedrooms: ${getSafe(basicInfo, "bedrooms", "N/A (Land/Commercial)")}\n- Bathrooms: ${getSafe(basicInfo, "bathrooms", "N/A (Land/Commercial)")}\n\n**Location:**\n- Address: ${getSafe(location, "addressLine1")}${location.addressLine2 ? `, ${location.addressLine2}` : ""}\n- Area/Town: ${getSafe(location, "cityTown")}\n- Upazila/Thana: ${getSafe(location, "upazila")}\n- District: ${getSafe(location, "district")}\n- Postal Code: ${getSafe(location, "postalCode")}\n\n**Standard Features:**\n${formatFeaturesForPrompt(features)}\n\n**Specific Details & Local Context:**\n${formatBangladeshDetailsForPrompt(bdDetails)}\n`;
+    
+    prompt += `**Property Details:**
+- Title: ${getSafe(basicInfo, "title")}
+- Property Type: ${getSafe(basicInfo, "propertyType")}
+- Listing Type: For ${getSafe(basicInfo, "listingType")}
+- Price: ${getSafe(basicInfo, "price")} BDT${basicInfo.listingType === "rent" ? " /month" : ""}
+- Size: ${getSafe(basicInfo, "area")} sqft
+- Bedrooms: ${getSafe(basicInfo, "bedrooms", "N/A (Land/Commercial)")}
+- Bathrooms: ${getSafe(basicInfo, "bathrooms", "N/A (Land/Commercial)")}
+
+**Location:**
+- Address: ${getSafe(location, "addressLine1")}${location.addressLine2 ? `, ${location.addressLine2}` : ""}
+- Area/Town: ${getSafe(location, "cityTown")}
+- Upazila/Thana: ${getSafe(location, "upazila")}
+- District: ${getSafe(location, "district")}
+- Postal Code: ${getSafe(location, "postalCode")}
+
+**Key Features & Amenities:**
+${formatFeaturesForPrompt(features)}
+
+**Local Highlights & Context:**
+${formatBangladeshDetailsForPrompt(bdDetails)}`;
     // --- End of Improved Prompt ---
 
-    console.log("---- Sending Prompt to AI ----\n", prompt); // Log the prompt for debugging
+    console.log("---- Sending Prompt to NVIDIA ----\n", prompt); // Log the prompt for debugging
 
-    const completion = await openai.chat.completions.create({
+    const payload = {
+      model: "mistralai/mistral-medium-3-instruct",
       messages: [
         {
-          role: "system",
-          content:
-            language === "bn"
-              ? "আপনি একজন সহায়ক সহকারী, বাংলাদেশের বাজারের জন্য বাংলায় আকর্ষণীয় সম্পত্তির বিবরণ লিখছেন। নোট করুন: সুযোগ-সুবিধা ও অন্যান্য তথ্য ইংরেজিতে দেওয়া হয়েছে, আপনি বাংলায় অনুবাদ করে বর্ণনায় ব্যবহার করুন।"
-              : "You are a helpful assistant writing compelling property descriptions for the Bangladeshi market based on provided details.",
-        },
-        { role: "user", content: prompt },
+          role: "user",
+          content: prompt
+        }
       ],
-      model: process.env.AI_MODEL || "gpt-3.5-turbo", // Use a widely available model for compatibility
-      // max_tokens: 250, // Optional: Limit response length
-      // temperature: 0.7, // Optional: Adjust creativity
-    });
-
-    if (completion?.choices?.[0]?.message?.content) {
-      console.log(
-        "---- AI Response Received ----\n",
-        completion.choices[0].message.content
-      ); // Log response
-      res.json({ description: completion.choices[0].message.content.trim() });
+      max_tokens: 512,
+      temperature: 1.0,
+      top_p: 1.0,
+      stream: false
+    };
+    const headers = {
+      "Authorization": `Bearer ${NVIDIA_API_KEY}`,
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    };
+    const response = await axios.post(NVIDIA_API_URL, payload, { headers });
+    if (response.data && response.data.choices && response.data.choices[0] && response.data.choices[0].message && response.data.choices[0].message.content) {
+      const description = response.data.choices[0].message.content.trim();
+      res.json({ description });
     } else {
-      console.error("Invalid response structure from AI API:", completion);
-      throw new Error("Invalid response structure from AI API");
+      console.error("Invalid response structure from NVIDIA API:", response.data);
+      res.status(500).json({
+        error: "Failed to generate property description",
+        details: "Invalid response structure from NVIDIA API",
+        nvidiaRaw: response.data,
+      });
     }
   } catch (error) {
     console.error(
       "AI Description Error:",
-      error?.response?.data || error?.message || error
+      error?.response?.data || error?.message || error,
+      JSON.stringify(error, null, 2)
     );
     res.status(500).json({
       error: "Failed to generate property description",
