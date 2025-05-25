@@ -3,7 +3,6 @@
 const fetch = require("node-fetch"); // Add fetch for Gemini API
 const axios = require("axios");
 
-const GEMINI_API_KEY = "AIzaSyBSAu5E_5DsvPdvdgI1BEciA200sNQD7UI";
 const NVIDIA_API_KEY = "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";
 const NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 
