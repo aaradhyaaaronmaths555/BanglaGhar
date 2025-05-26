@@ -136,6 +136,7 @@ const generatePropertyDescription = async (req, res) => {
 - give response in simple txt format, no markdown or code block
 - (IMPORTANT) PLEASE GIVE ME THE RESPONSE IN ${language} LANGUAGE. the translation should be accurate and natural, not just a direct word-for-word translation. if possible use google translate api to get the translation. if you can't use google translate api, then use your own translation model to get the translation. but please make sure the translation is accurate and natural.
 - avoid using like in the heart of dhaka or in the heart of dhaka city, instead use like in dhaka city or in dhaka or anything more specific.
+- can you analyse the the location of the property in whatever part of the city it lies and generate a description accoringly avoiding key phrases like in the heart of dhaka or in the heart of dhaka city, instead use like in dhaka city or in dhaka or anything like that.
 
 Length: 150–200 words
 `;
