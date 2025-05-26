@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 // Import the NEW MapComponent from its correct refactored location
-import MapComponent from "../../map/components/MapComponent"; // Corrected path
+import MapComponent from "../../map/components/MapComponent";
+import useMapData from "../../map/hooks/useMapData"; 
 
 /**
  * HomeMapPreview Component
@@ -14,6 +15,8 @@ import MapComponent from "../../map/components/MapComponent"; // Corrected path
 const HomeMapPreview = () => {
   const navigate = useNavigate();
   const { t } = useTranslation(); // Hook for internationalization
+
+  const { properties, mapCenter, mapZoom } = useMapData();
 
   return (
     <Box sx={{ py: 6, backgroundColor: "#f8f9fa" /* Light background */ }}>
@@ -54,12 +57,9 @@ const HomeMapPreview = () => {
           {/* Render the new MapComponent */}
           {/* Pass minimal props needed for a preview, or none if it defaults okay */}
           <MapComponent
-            properties={[]} // Pass empty array or fetched featured properties if needed
-            mapCenter={[23.8103, 90.4125]} // Default center
-            mapZoom={7} // Default zoom
-            // readOnly={true} // Maybe disable interactions
-            // userLocation={null} // Don't show user location in preview
-            // onMarkerClick={() => {}} // Disable marker clicks
+            properties={properties}
+            mapCenter={mapCenter}
+            mapZoom={mapZoom}
           />
         </Paper>
         <Box sx={{ textAlign: "center" }}>

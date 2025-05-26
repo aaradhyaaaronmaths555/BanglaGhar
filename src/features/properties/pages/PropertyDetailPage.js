@@ -71,9 +71,8 @@ const formatDisplayPrice = (price, listingType) => {
   if (price === null || price === undefined) return "N/A";
   const numericPrice = Number(price);
   if (isNaN(numericPrice)) return "Invalid Price";
-  return `৳ ${numericPrice.toLocaleString()}${
-    listingType === "rent" ? "/mo" : ""
-  }`;
+  return `৳ ${numericPrice.toLocaleString()}${listingType === "rent" ? "/mo" : ""
+    }`;
 };
 
 const displayText = (value, fallback = "N/A") => value || fallback;
@@ -259,36 +258,34 @@ const PropertyDetailPage = () => {
         const positionData = getPropertyPosition(property);
 
         // Add position data if missing (for map functionality)
-        if (!positionData) {
-          console.log("Position data missing, adding default position");
+        if (response.data) {
+          console.log("Property data received:", response.data);
 
-          // Default to the district center if location accuracy is district-level
-          if (
-            property.locationAccuracy === "district-level" &&
-            property.district
-          ) {
-            // You could implement a lookup for district centers here
-            // For now, use a randomized position near Dhaka
+          const property = response.data;
+          const positionData = getPropertyPosition(property);
+
+          // Add position data if missing (for map functionality)
+          if (!positionData) {
+            console.log("Position data missing, adding fallback position");
+
+            // Default to a static Dhaka location (slightly randomized if desired)
             property.position = {
-              lat: 23.8103 + (Math.random() * 0.1 - 0.05),
-              lng: 90.4125 + (Math.random() * 0.1 - 0.05),
-            };
-            console.log("Added district-level position data");
-          } else {
-            // Random position near Dhaka for any other case
-            property.position = {
-              lat: 23.8103 + (Math.random() * 0.1 - 0.05),
-              lng: 90.4125 + (Math.random() * 0.1 - 0.05),
+              lat: 23.8103 + (Math.random() * 0.01 - 0.005), // +/- ~0.005 deg
+              lng: 90.4125 + (Math.random() * 0.01 - 0.005),
             };
 
-            // Set location accuracy if not already set
-            if (!property.locationAccuracy) {
+            // Set locationAccuracy only if missing
+            if (!property.locationAccuracy || property.locationAccuracy === "unknown") {
               property.locationAccuracy = "approximate";
             }
 
-            console.log("Added approximate position data");
+            console.log("Using default fallback position near Dhaka:", property.position);
           }
+
+          setProperty(property);
         }
+
+
 
         setProperty(property);
       } else {
@@ -297,28 +294,30 @@ const PropertyDetailPage = () => {
     } catch (err) {
       console.error("Error fetching property details:", err);
 
-      // Include more detailed error information
       if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         console.error("Error response data:", err.response.data);
         console.error("Error response status:", err.response.status);
-        setError(
-          `Failed to load property details. Server responded with: ${err.response.status} ${err.response.statusText}`
-        );
+
+        // Handle common status codes more clearly
+        if (err.response.status === 403) {
+          setError("This property has been marked as rented and is no longer public. Only the owner can view it.");
+        } else if (err.response.status === 404) {
+          setError("This property was not found. It may have been removed.");
+        } else {
+          setError(
+            `Failed to load property details. Server responded with: ${err.response.status} ${err.response.statusText}`
+          );
+        }
       } else if (err.request) {
-        // The request was made but no response was received
         console.error("No response received:", err.request);
-        setError(
-          "Failed to load property details. No response received from server."
-        );
+        setError("Failed to load property details. No response received from server.");
       } else {
-        // Something happened in setting up the request that triggered an Error
         setError(`Failed to load property details. ${err.message}`);
       }
     } finally {
       setLoading(false);
     }
+
   }, [propertyId]);
 
   useEffect(() => {
@@ -335,32 +334,8 @@ const PropertyDetailPage = () => {
   };
 
   const handleOpenMap = () => {
-    if (
-      property &&
-      property.position &&
-      typeof property.position.lat === "number" &&
-      typeof property.position.lng === "number"
-    ) {
-      // Navigate to your map page (e.g., '/map')
-      // Pass property data, specifically location, via route state.
-      // The MapPage can then use this data to display the property.
-      navigate("/map", {
-        state: {
-          properties: [property], // Sending as an array in case your MapPage handles multiple markers
-          center: property.position, // Optional: tell MapPage to center on this property
-          zoom: 15, // Optional: suggest an initial zoom level
-        },
-      });
-    } else {
-      // Handle cases where location data might be missing or invalid
-      showSnackbar(
-        "Location data for this property is not available or invalid.",
-        "warning"
-      );
-      console.warn(
-        "handleOpenMap: Property or property.position is missing or invalid.",
-        property
-      );
+    if (property && property._id) {
+      navigate(`/map/${property._id}`);
     }
   };
 
@@ -429,6 +404,28 @@ const PropertyDetailPage = () => {
       setContactLoading(false);
     }
   };
+
+  const handleMarkStatus = async (propertyId) => {
+    const updateData =
+      property.listingType === "rent"
+        ? { isHidden: true }
+        : { listingType: "sold" };
+
+    try {
+      await axios.put(`${API_BASE_URL}/properties/${propertyId}`, updateData, {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      showSnackbar("Property status updated successfully.", "success");
+      fetchPropertyDetails(); // refresh UI
+    } catch (err) {
+      console.error("Error updating property status:", err);
+      showSnackbar("Failed to update property status.", "error");
+    }
+  };
+
 
   // --- Render Logic ---
   if (loading || isAuthLoading)
@@ -537,22 +534,22 @@ const PropertyDetailPage = () => {
       {/* Location Accuracy Alert */}
       {(locationAccuracy === "district-level" ||
         locationAccuracy === "approximate") && (
-        <Alert
-          severity={locationAccuracy === "district-level" ? "error" : "warning"}
-          icon={accuracyInfo.icon}
-          sx={{ mb: 3 }}
-        >
-          {locationAccuracy === "district-level"
-            ? t(
+          <Alert
+            severity={locationAccuracy === "district-level" ? "error" : "warning"}
+            icon={accuracyInfo.icon}
+            sx={{ mb: 3 }}
+          >
+            {locationAccuracy === "district-level"
+              ? t(
                 "district_level_warning_detail",
                 "This property listing has only district-level location information. The exact property location may be elsewhere in this district."
               )
-            : t(
+              : t(
                 "approximate_location_warning_detail",
                 "This property listing has an approximate location. The exact property may be nearby but not at the exact point shown on the map."
               )}
-        </Alert>
-      )}
+          </Alert>
+        )}
 
       <Paper elevation={3} sx={{ borderRadius: "12px", overflow: "hidden" }}>
         <Grid container>
@@ -673,9 +670,8 @@ const PropertyDetailPage = () => {
                   <Tooltip
                     title={t(
                       `location_accuracy_${accuracyInfo.text}`,
-                      `${
-                        locationAccuracy.charAt(0).toUpperCase() +
-                        locationAccuracy.slice(1)
+                      `${locationAccuracy.charAt(0).toUpperCase() +
+                      locationAccuracy.slice(1)
                       } Location`
                     )}
                     arrow
@@ -838,9 +834,8 @@ const PropertyDetailPage = () => {
                     primary="Location Accuracy"
                     secondary={t(
                       `location_accuracy_${accuracyInfo.text}_full`,
-                      `${
-                        locationAccuracy.charAt(0).toUpperCase() +
-                        locationAccuracy.slice(1)
+                      `${locationAccuracy.charAt(0).toUpperCase() +
+                      locationAccuracy.slice(1)
                       } Location`
                     )}
                   />
@@ -861,6 +856,20 @@ const PropertyDetailPage = () => {
                 <Typography variant="h6" gutterBottom>
                   Contact Advertiser
                 </Typography>
+                {isOwnListing && (
+                  <Box sx={{ mt: 2 }}>
+                    {(property.listingType === "rent" || property.listingType === "buy") && (
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        onClick={() => handleMarkStatus(property._id)}
+                      >
+                        {property.listingType === "rent" ? "Mark as Rented" : "Mark as Sold"}
+                      </Button>
+                    )}
+                  </Box>
+                )}
+
                 {isAuthLoading ? (
                   <CircularProgress size={24} />
                 ) : isLoggedIn &&
