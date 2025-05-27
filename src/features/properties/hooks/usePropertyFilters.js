@@ -48,9 +48,15 @@ const usePropertyFilters = (mode) => {
     const fetchProperties = async () => {
       // *** IMPORTANT: Ensure backend GET /api/properties returns the *new* fields ***
       // (addressLine1, cityTown, district, upazila, postalCode, features object, bangladeshDetails object etc.)
-      const fetchUrl = mode
-        ? `${API_BASE_URL}/properties?listingType=${mode}`
-        : `${API_BASE_URL}/properties`;
+      let fetchUrl = `${API_BASE_URL}/properties`;
+
+      if (mode === "buy") {
+        fetchUrl += "?listingType=buy&listingStatus=available";
+      } else if (mode === "sold") {
+        fetchUrl += "?listingType=buy&listingStatus=sold";
+      } else if (mode === "rent") {
+        fetchUrl += "?listingType=rent&listingStatus=available";
+      }
 
       console.log(`Fetching properties from: ${fetchUrl}`);
 
@@ -115,14 +121,14 @@ const usePropertyFilters = (mode) => {
       const priceMatch =
         p.price !== null && p.price !== undefined
           ? (() => {
-              const [minPrice, maxPrice] = filters.priceRange;
-              return (
-                p.price >= minPrice &&
-                (maxPrice === 50000000
-                  ? p.price >= minPrice
-                  : p.price <= maxPrice)
-              );
-            })()
+            const [minPrice, maxPrice] = filters.priceRange;
+            return (
+              p.price >= minPrice &&
+              (maxPrice === 50000000
+                ? p.price >= minPrice
+                : p.price <= maxPrice)
+            );
+          })()
           : true; // Include if price is missing? Or exclude (return false)? Decide based on requirements. Let's exclude for now.
       // if (p.price === null || p.price === undefined) return false;
 

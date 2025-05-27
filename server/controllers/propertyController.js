@@ -285,10 +285,12 @@ exports.getAllProperties = async (req, res) => {
       isHidden: { $ne: true },
     };
 
-    // This could be enhanced by checking req.userProfile.isAdmin if needed.
     if (req.query.includeUnavailable !== "true") {
-      // Add a query param to optionally include non-available
-      baseFilter.listingStatus = "available";
+      // Show 'available' and 'sold' for buy listings
+      baseFilter.$or = [
+        { listingStatus: "available" },
+        { listingStatus: "sold", listingType: "buy" },
+      ];
     }
 
     let properties;
@@ -431,7 +433,7 @@ exports.updateProperty = async (req, res) => {
     // And req.userProfile.isAdmin is a boolean indicating admin status
     if (
       existingProperty.createdBy.toString() !==
-        req.userProfile._id.toString() &&
+      req.userProfile._id.toString() &&
       !req.userProfile.isAdmin
     ) {
       return res
@@ -526,7 +528,7 @@ exports.deleteProperty = async (req, res) => {
     // Authorization check
     if (
       propertyToDelete.createdBy.toString() !==
-        req.userProfile._id.toString() &&
+      req.userProfile._id.toString() &&
       !req.userProfile.isAdmin
     ) {
       return res
@@ -587,7 +589,7 @@ exports.updatePropertyCoordinates = async (req, res) => {
     // Example: Only owner or admin can update coordinates
     if (
       propertyToUpdate.createdBy.toString() !==
-        req.userProfile._id.toString() &&
+      req.userProfile._id.toString() &&
       !req.userProfile.isAdmin
     ) {
       return res.status(403).json({

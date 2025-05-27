@@ -79,16 +79,36 @@ router.post(
       .withMessage("Invalid listing status."),
 
     // --- Details ---
-    body("bedrooms") //
-      .optional()
-      .isInt({ min: 0 })
-      .withMessage("Bedrooms must be a non-negative integer.")
-      .toInt(),
-    body("bathrooms") //
-      .optional()
-      .isInt({ min: 0 })
-      .withMessage("Bathrooms must be a non-negative integer.")
-      .toInt(),
+    body("bedrooms").custom((value, { req }) => {
+      const exempt = ["land", "commercial"];
+      if (exempt.includes(req.body.propertyType)) return true;
+
+      if (value === undefined || value === null || value === "") {
+        throw new Error("Bedrooms are required for this property type.");
+      }
+
+      const parsed = parseInt(value, 10);
+      if (isNaN(parsed) || parsed < 0) {
+        throw new Error("Bedrooms must be a non-negative integer.");
+      }
+      return true;
+    }),
+
+    body("bathrooms").custom((value, { req }) => {
+      const exempt = ["land", "commercial"];
+      if (exempt.includes(req.body.propertyType)) return true;
+
+      if (value === undefined || value === null || value === "") {
+        throw new Error("Bathrooms are required for this property type.");
+      }
+
+      const parsed = parseInt(value, 10);
+      if (isNaN(parsed) || parsed < 0) {
+        throw new Error("Bathrooms must be a non-negative integer.");
+      }
+      return true;
+    }),
+
     body("area") //
       .optional()
       .isNumeric()
