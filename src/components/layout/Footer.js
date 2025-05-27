@@ -128,7 +128,7 @@ const Footer = () => {
                   textShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
                 }}
               >
-                BanglaGhor {/* <-- Kept as is, brand name */}
+                BanglaGhor
                 <Box
                   component="span"
                   sx={{
@@ -145,8 +145,7 @@ const Footer = () => {
               </Typography>
               <Typography variant="body2" sx={{ color: "#BFBBB8" }}>
                 Finding your dream home in Bangladesh has never been easier.
-                Expert property solutions since 2020.{" "}
-                {/* <-- Kept as is, custom text */}
+                Expert property solutions since 2020.
               </Typography>
             </Box>
             <Box sx={{ mt: 3 }}>
@@ -154,7 +153,7 @@ const Footer = () => {
                 variant="body2"
                 sx={{ mb: 1, color: "#EFF9FE", fontWeight: "medium" }}
               >
-                {t("connect_with_us")} {/* Applied translation */}
+                {t("connect_with_us")}
               </Typography>
               <Box sx={{ display: "flex", gap: 1.5 }}>
                 {/* Social Icons... (kept as is) */}
@@ -275,7 +274,7 @@ const Footer = () => {
                 },
               }}
             >
-              Quick Links {/* <-- Kept as is, no key */}
+              Quick Links
             </Typography>
             <Box
               sx={{
@@ -298,7 +297,7 @@ const Footer = () => {
                   transition: "all 0.3s ease-in-out",
                 }}
               >
-                {t("nav_home")} {/* Applied translation */}
+                {t("nav_home")}
               </Link>
               <Link
                 component={RouterLink}
@@ -314,7 +313,7 @@ const Footer = () => {
                   },
                 }}
               >
-                {t("nav_buy")} {/* Applied translation */}
+                {t("nav_buy")}
               </Link>
               <Link
                 component={RouterLink}
@@ -330,7 +329,7 @@ const Footer = () => {
                   },
                 }}
               >
-                {t("nav_rent")} {/* Applied translation */}
+                {t("nav_rent")}
               </Link>
               <Link
                 component={RouterLink}
@@ -346,7 +345,7 @@ const Footer = () => {
                   },
                 }}
               >
-                {t("nav_sold")} {/* Applied translation */}
+                {t("nav_sold")}
               </Link>
               <Link
                 component={RouterLink}
@@ -361,7 +360,7 @@ const Footer = () => {
                   },
                 }}
               >
-                {t("nav_about")} {/* Applied translation */}
+                {t("nav_about")}
               </Link>
             </Box>
           </Grid>
@@ -385,7 +384,7 @@ const Footer = () => {
                 },
               }}
             >
-              {t("contact_us")} {/* Applied translation */}
+              {t("contact_us")}
             </Typography>
             <Box>
               {/* Address, Phone, Email - kept as is */}
@@ -456,11 +455,10 @@ const Footer = () => {
                 },
               }}
             >
-              Newsletter {/* <-- Kept as is, no key */}
+              Newsletter
             </Typography>
             <Typography variant="body2" sx={{ mb: 2, color: "#BFBBB8" }}>
-              Subscribe to get the latest property listings and market updates.{" "}
-              {/* <-- Kept as is, custom text */}
+              Subscribe to get the latest property listings and market updates.
             </Typography>
             <Box
               component="form"
@@ -495,7 +493,7 @@ const Footer = () => {
                   color: "#EFF9FE",
                 }}
               >
-                Subscribe {/* <-- Kept as is, no key */}
+                Subscribe
               </Button>
             </Box>
           </Grid>
@@ -523,8 +521,7 @@ const Footer = () => {
             variant="body2"
             sx={{ color: "#BFBBB8", mb: isMobile ? 1 : 0 }}
           >
-            © {new Date().getFullYear()} BanglaGhor. All rights reserved.{" "}
-            {/* <-- Kept as is, standard text */}
+            © {new Date().getFullYear()} BanglaGhor. All rights reserved.
           </Typography>
           <Box>
             <Link
@@ -536,7 +533,7 @@ const Footer = () => {
                 "&:hover": { color: "#8FBFBF" },
               }}
             >
-              Privacy Policy {/* <-- Kept as is, no key */}
+              Privacy Policy
             </Link>
             <Link
               href="#"
@@ -547,7 +544,7 @@ const Footer = () => {
                 "&:hover": { color: "#8FBFBF" },
               }}
             >
-              Terms of Service {/* <-- Kept as is, no key */}
+              Terms of Service
             </Link>
           </Box>
         </Box>

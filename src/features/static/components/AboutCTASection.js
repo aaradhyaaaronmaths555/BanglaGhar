@@ -41,7 +41,7 @@ const AboutCTASection = () => {
               textTransform: "none",
             }}
           >
-            {t("explore_properties")} {/* Applied */}
+            {t("explore_properties")}
           </Button>
           <Button
             variant="outlined"
@@ -56,7 +56,7 @@ const AboutCTASection = () => {
               textTransform: "none",
             }}
           >
-            {t("contact_us")} {/* Applied */}
+            {t("contact_us")}
           </Button>
         </Stack>
       </Box>

@@ -1,13 +1,8 @@
-// server/controllers/userProfileController.js
 const UserProfile = require("../models/UserProfile");
-// const fs = require("fs"); // REMOVED: No longer interacting with local filesystem directly for uploads
-const path = require("path"); // Keep for extension extraction if needed
+const path = require("path");
 const Property = require("../models/property");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3"); // ADDED: AWS S3 Client
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
-// --- Configure AWS S3 Client ---
-// Ensure these environment variables are set in Netlify:
-// AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET_NAME, APP_AWS_REGION
 const s3Client = new S3Client({
   region: process.env.APP_AWS_REGION,
   credentials: {
@@ -16,11 +11,9 @@ const s3Client = new S3Client({
   },
 });
 const S3_BUCKET = process.env.S3_BUCKET_NAME;
-// --- End S3 Configuration ---
 
-// --- getMyProfile function --- (No changes from your previous version)
+// Get current user's profile
 exports.getMyProfile = async (req, res) => {
-  // ... (your existing getMyProfile code) ...
   if (!req.user || !req.user.email || !req.user.sub) {
     console.error("UserProfile Fetch Error: req.user not found or incomplete.");
     return res.status(401).json({ message: "Authentication required." });
@@ -80,9 +73,8 @@ exports.getMyProfile = async (req, res) => {
   }
 };
 
-// --- updateMyProfile function --- (No changes from your previous version)
+// Update current user's profile
 exports.updateMyProfile = async (req, res) => {
-  // ... (your existing updateMyProfile code) ...
   if (!req.user || !req.user.email) {
     console.error("Update Profile Error: req.user not found or incomplete.");
     return res.status(401).json({ message: "Authentication required." });
@@ -130,10 +122,9 @@ exports.updateMyProfile = async (req, res) => {
   }
 };
 
-// --- uploadGovtId function (MODIFIED for S3) ---
+// Upload government ID
 exports.uploadGovtId = async (req, res) => {
   if (!req.user || !req.user.email || !req.user.sub) {
-    // Ensure sub is available
     console.error("ID Upload Error: req.user not found or incomplete.");
     return res.status(401).json({ message: "Authentication required." });
   }
@@ -152,24 +143,19 @@ exports.uploadGovtId = async (req, res) => {
   }
 
   const userEmail = req.user.email;
-  const userSub = req.user.sub; // Use cognitoSub for unique folder/filename if desired
+  const userSub = req.user.sub;
   const fileBuffer = req.file.buffer;
   const originalName = req.file.originalname;
   const mimeType = req.file.mimetype;
   const fileExtension = path.extname(originalName);
 
-  // Construct a unique filename for S3
-  // Example: govt_ids/ap-southeast-2_user_sub_id/1678886400000.pdf
   const s3Key = `govt_ids/${userSub}/${Date.now()}${fileExtension}`;
 
-  // S3 Upload Parameters
   const params = {
     Bucket: S3_BUCKET,
     Key: s3Key,
     Body: fileBuffer,
     ContentType: mimeType,
-    // ACL: 'public-read' // Optional: if you want the file to be publicly accessible directly via S3 URL
-    // Consider using CloudFront or signed URLs for better security/control
   };
 
   console.log(
@@ -177,28 +163,21 @@ exports.uploadGovtId = async (req, res) => {
   );
 
   try {
-    // Upload to S3
     const command = new PutObjectCommand(params);
     const uploadResult = await s3Client.send(command);
-    console.log("S3 Upload Result:", uploadResult); // Log the result from S3
+    console.log("S3 Upload Result:", uploadResult);
 
-    // Construct the S3 URL (adjust based on your bucket/region/settings)
-    // Basic HTTPS URL format:
     const fileUrl = `https://${S3_BUCKET}.s3.${process.env.APP_AWS_REGION}.amazonaws.com/${s3Key}`;
     console.log(`File uploaded successfully to: ${fileUrl}`);
 
-    // Find user profile
     const userProfile = await UserProfile.findOne({ email: userEmail });
     if (!userProfile) {
       console.error(
         `ID Upload Error: UserProfile not found for ${userEmail} after S3 upload.`
       );
-      // Note: Consider deleting the S3 object here if the profile doesn't exist, though unlikely
       return res.status(404).json({ message: "User profile not found." });
     }
 
-    // Update profile with S3 URL
-    // Note: No need to delete old file from S3 here unless you implement specific tracking/versioning
     userProfile.govtIdUrl = fileUrl;
     userProfile.approvalStatus = "pending";
     await userProfile.save();
@@ -209,7 +188,7 @@ exports.uploadGovtId = async (req, res) => {
     res.status(200).json({
       message: "ID uploaded successfully. Your request is pending approval.",
       approvalStatus: userProfile.approvalStatus,
-      fileUrl: fileUrl, // Optionally return the URL
+      fileUrl: fileUrl,
     });
   } catch (error) {
     console.error(`ID Upload Error processing file for ${userEmail}:`, error);
@@ -220,9 +199,8 @@ exports.uploadGovtId = async (req, res) => {
   }
 };
 
-// --- getMyListings function --- (No changes from your previous version)
+// Get current user's property listings
 exports.getMyListings = async (req, res) => {
-  // Use req.user from the token, which should be populated by your auth middleware
   if (!req.user || (!req.user.email && !req.user.sub)) {
     console.error(
       "Get My Listings Error: User not authenticated or identifier (email/sub) missing from token."
@@ -231,8 +209,6 @@ exports.getMyListings = async (req, res) => {
   }
 
   try {
-    // Step 1: Find the UserProfile document using a unique identifier from the token.
-    // Using 'sub' (Cognito subject) is often more reliable than email if available and indexed.
     const queryIdentifier = req.user.sub
       ? { cognitoSub: req.user.sub }
       : { email: req.user.email };
@@ -244,15 +220,12 @@ exports.getMyListings = async (req, res) => {
           queryIdentifier
         )}. Cannot fetch listings.`
       );
-      // If a user is authenticated but somehow has no profile record, they can't have listings.
-      return res.status(200).json([]); // Return empty array, not an error
+      return res.status(200).json([]);
     }
 
-    // Step 2: Use the _id from the found UserProfile to query properties.
     const userListings = await Property.find({ createdBy: userProfile._id })
       .sort({ createdAt: -1 })
       .select(
-        // Specify fields you need for the "My Listings" view
         "title price listingType propertyType images addressLine1 cityTown district createdAt isHidden bedrooms bathrooms area"
       );
 
@@ -261,12 +234,11 @@ exports.getMyListings = async (req, res) => {
     );
     res.status(200).json(userListings);
   } catch (error) {
-    // This catch block will handle any errors from the UserProfile.findOne or Property.find calls
     console.error(
       `Error fetching listings for user (identifier: ${
         JSON.stringify(req.user && (req.user.sub || req.user.email)) || "N/A"
       }):`,
-      error // Log the actual error object
+      error
     );
     res.status(500).json({ error: "Server error fetching user listings." });
   }

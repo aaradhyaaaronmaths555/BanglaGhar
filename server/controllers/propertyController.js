@@ -5,8 +5,6 @@ const axios = require("axios");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { v4: uuidv4 } = require("uuid");
 
-// Helper function to check if coordinates are within Bangladesh
-
 // S3 Client specifically for Property Images
 const propertyImagesS3Client = new S3Client({
   region: process.env.APP_AWS_REGION, // Assuming region is the same for both buckets
@@ -36,7 +34,6 @@ const isValidBangladeshLocation = (lat, lng) => {
 };
 
 // Helper function to get fallback coordinates for districts
-
 const getDistrictCoordinates = (district) => {
   const districtMap = {
     // Central districts
@@ -92,7 +89,6 @@ const getDistrictCoordinates = (district) => {
 };
 
 // Helper to construct a well-formatted address for geocoding
-
 const constructGeocodingAddress = (addressData) => {
   const {
     addressLine1,
@@ -117,7 +113,6 @@ const constructGeocodingAddress = (addressData) => {
 };
 
 // Function to geocode an address using OpenCage API
-
 const geocodeAddress = async (addressData) => {
   const fullAddress = constructGeocodingAddress(addressData);
   console.log("Geocoding address:", fullAddress);
@@ -590,7 +585,6 @@ exports.deleteProperty = async (req, res) => {
 };
 
 // NEW: API endpoint to manually update coordinates for a property
-// ... (updatePropertyCoordinates function remains the same, but add authorization if needed)
 exports.updatePropertyCoordinates = async (req, res) => {
   try {
     const { id } = req.params;
@@ -709,7 +703,6 @@ exports.uploadPropertyImageToS3 = async (req, res) => {
 };
 
 // NEW: Batch geocode properties
-// ... (batchGeocodeProperties function remains the same)
 // This should be an admin-only endpoint
 exports.batchGeocodeProperties = async (req, res) => {
   // Ensure user is an admin (req.userProfile should be set by fetchUserProfileMiddleware)
@@ -775,49 +768,50 @@ exports.batchGeocodeProperties = async (req, res) => {
         const geocodeResult = await geocodeAddress(addressData);
 
         if (geocodeResult) {
-          // Update the property with geocoded data
-          await Property.findByIdAndUpdate(property._id, {
-            ...geocodeResult,
-            // Optionally, add a field like 'lastGeocodeAttempt': new Date()
-          });
-
           results.successfulGeocodes++;
+          // Update the property with new coordinates
+          await Property.findByIdAndUpdate(
+            property._id,
+            {
+              latitude: geocodeResult.latitude,
+              longitude: geocodeResult.longitude,
+              position: geocodeResult.position,
+              locationAccuracy: geocodeResult.locationAccuracy,
+              geocodedAddress: geocodeResult.geocodedAddress,
+            },
+            { new: true, runValidators: true }
+          );
           results.details.push({
-            propertyId: property._id.toString(),
+            propertyId: property._id,
             status: "success",
-            coordinates: `${geocodeResult.latitude}, ${geocodeResult.longitude}`,
-            accuracy: geocodeResult.locationAccuracy,
-            formattedAddress: geocodeResult.formatted,
+            latitude: geocodeResult.latitude,
+            longitude: geocodeResult.longitude,
           });
         } else {
           results.failedGeocodes++;
           results.details.push({
-            propertyId: property._id.toString(),
+            propertyId: property._id,
             status: "failed",
-            reason:
-              "Geocoding returned no results for the constructed address.",
-            addressAttempted: constructGeocodingAddress(addressData),
+            reason: "Geocoding result was null or undefined",
           });
-          // Optionally, mark this property so it's not picked up again immediately
-          // await Property.findByIdAndUpdate(property._id, { locationAccuracy: 'failed_attempt' });
         }
       } catch (error) {
+        console.error("Error during batch geocoding for property:", property._id, error);
         results.failedGeocodes++;
         results.details.push({
-          propertyId: property._id.toString(),
-          status: "error",
+          propertyId: property._id,
+          status: "failed",
           reason: error.message,
-          addressAttempted: constructGeocodingAddress(addressData),
         });
       }
     }
 
     res.json({
-      message: `Batch geocoding completed. Success: ${results.successfulGeocodes}, Failed: ${results.failedGeocodes} out of ${results.totalToProcess}.`,
-      results,
+      message: "Batch geocoding completed",
+      results: results,
     });
   } catch (err) {
-    console.error("Batch geocode error:", err);
-    res.status(500).json({ error: "Server error during batch geocoding." });
+    console.error("Batch geocoding error:", err);
+    res.status(500).json({ error: "Server error during batch geocoding" });
   }
 };

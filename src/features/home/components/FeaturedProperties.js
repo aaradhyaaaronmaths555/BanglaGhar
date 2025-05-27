@@ -155,7 +155,7 @@ const FeaturedProperties = () => {
         )}
         {/* Error Message - No manual padding needed */}
         {error && (
-          // <Box sx={{ px: { xs: 2, sm: 3 } }}> Removed padding wrapper
+          // <Box sx={{ px: { xs: 2, sm: 3 }}}> Removed padding wrapper
           <Typography color="error" sx={{ textAlign: "center", my: 5 }}>
             {error}
           </Typography>
@@ -194,7 +194,7 @@ const FeaturedProperties = () => {
 
         {/* No Properties Message - No manual padding needed */}
         {!loading && !error && properties.length === 0 && (
-          // <Box sx={{ px: { xs: 2, sm: 3 } }}> Removed padding wrapper
+          // <Box sx={{ px: { xs: 2, sm: 3 }}}> Removed padding wrapper
           <Typography
             sx={{ textAlign: "center", my: 5, color: "text.secondary" }}
           >

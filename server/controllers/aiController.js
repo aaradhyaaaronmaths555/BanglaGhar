@@ -1,14 +1,11 @@
-// server/controllers/aiController.js
-
 const OpenAI = require("openai");
 
-// Configure OpenAI client from env
 const openai = new OpenAI({
-  baseURL: process.env.OPENAI_API_BASE_URL || "https://api.aimlapi.com/v1", // Default to aimlapi if needed
-  apiKey: process.env.AIML_API_KEY || process.env.OPENAI_API_KEY, // Check both potential env var names
+  baseURL: process.env.OPENAI_API_BASE_URL || "https://api.aimlapi.com/v1",
+  apiKey: process.env.AIML_API_KEY || process.env.OPENAI_API_KEY,
 });
 
-// Helper function to safely access nested properties
+// Safely access nested properties
 const getSafe = (obj, path, defaultValue = "N/A") => {
   const keys = path.split(".");
   let result = obj;
@@ -16,16 +13,15 @@ const getSafe = (obj, path, defaultValue = "N/A") => {
     if (result && typeof result === "object" && key in result) {
       result = result[key];
     } else {
-      return defaultValue; // Return default if path is invalid or value is null/undefined
+      return defaultValue;
     }
   }
-  // Handle cases where the final value might be null/undefined/empty string
   return result !== null && result !== undefined && result !== ""
     ? result
     : defaultValue;
 };
 
-// Helper function to format features for the prompt
+// Format features for prompt
 const formatFeaturesForPrompt = (features = {}) => {
   let featureString = "";
   if (features.parking === true) featureString += "- Parking Available\n";
@@ -35,11 +31,10 @@ const formatFeaturesForPrompt = (features = {}) => {
   if (features.pool === true) featureString += "- Swimming Pool\n";
   if (features.furnished && features.furnished !== "no")
     featureString += `- Furnished: ${features.furnished}\n`;
-  // Add other boolean features from your `features` object here...
-  return featureString || "N/A"; // Return N/A if no features listed
+  return featureString || "N/A";
 };
 
-// Helper function to format Bangladesh-specific details for the prompt
+// Format Bangladesh-specific details for prompt
 const formatBangladeshDetailsForPrompt = (bdDetails = {}) => {
   let detailString = "";
   if (getSafe(bdDetails, "propertyCondition") !== "N/A")
@@ -86,7 +81,6 @@ const formatBangladeshDetailsForPrompt = (bdDetails = {}) => {
       bdDetails,
       "nearbyMarkets"
     )}\n`;
-  // Add other important details from bdDetails here...
   if (getSafe(bdDetails, "balcony") === "yes")
     detailString += `- Balcony Available\n`;
   if (getSafe(bdDetails, "rooftopAccess") === "yes")
@@ -96,12 +90,11 @@ const formatBangladeshDetailsForPrompt = (bdDetails = {}) => {
   if (getSafe(bdDetails, "roadWidth") !== "N/A")
     detailString += `- Road Width: ${getSafe(bdDetails, "roadWidth")}\n`;
 
-  return detailString || "N/A"; // Return N/A if no specific details provided
+  return detailString || "N/A";
 };
 
 const generatePropertyDescription = async (req, res) => {
   try {
-    // Access the nested propertyData object sent from the frontend
     const propertyDataFromRequest = req.body.propertyData;
     if (
       !propertyDataFromRequest ||
@@ -110,13 +103,11 @@ const generatePropertyDescription = async (req, res) => {
       return res.status(400).json({ error: "Invalid property data received" });
     }
 
-    // Extract data using safe getter, accessing the correct nested structure
     const basicInfo = propertyDataFromRequest.basicInfo || {};
     const location = propertyDataFromRequest.location || {};
     const features = propertyDataFromRequest.features || {};
     const bdDetails = propertyDataFromRequest.bangladeshDetails || {};
 
-    // --- Build the NEW, Detailed Prompt ---
     const prompt = `
 You are a professional real estate agent writing a property listing for the Bangladeshi market. Generate a compelling and informative 150-200 word description for the following property. Focus on clarity, key selling points, and local context.
 
@@ -149,9 +140,8 @@ ${formatBangladeshDetailsForPrompt(bdDetails)}
 **Instructions:**
 Write an engaging description based *only* on the details provided above. Highlight the most attractive features, benefits of the location, and suitability for potential buyers/renters in Bangladesh. Ensure the tone is professional and inviting. Do not invent details not listed.
 `;
-    // --- End of New Prompt ---
 
-    console.log("---- Sending Prompt to AI ----\n", prompt); // Log the prompt for debugging
+    console.log("---- Sending Prompt to AI ----\n", prompt);
 
     const completion = await openai.chat.completions.create({
       messages: [
@@ -162,16 +152,14 @@ Write an engaging description based *only* on the details provided above. Highli
         },
         { role: "user", content: prompt },
       ],
-      model: process.env.AI_MODEL || "mistralai/Mistral-7B-Instruct-v0.2", // Use env var for model if needed
-      // max_tokens: 250, // Optional: Limit response length
-      // temperature: 0.7, // Optional: Adjust creativity
+      model: process.env.AI_MODEL || "mistralai/Mistral-7B-Instruct-v0.2",
     });
 
     if (completion?.choices?.[0]?.message?.content) {
       console.log(
         "---- AI Response Received ----\n",
         completion.choices[0].message.content
-      ); // Log response
+      );
       res.json({ description: completion.choices[0].message.content.trim() });
     } else {
       console.error("Invalid response structure from AI API:", completion);

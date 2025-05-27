@@ -22,21 +22,13 @@ import SquareFootIcon from "@mui/icons-material/SquareFoot";
 import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 import HomeWorkIcon from "@mui/icons-material/HomeWork";
-import { useTranslation } from "react-i18next"; // Import useTranslation
-
-// Helper to format price
-const formatDisplayPrice = (price, mode) => {
-  if (price === null || price === undefined) return "N/A";
-  const numericPrice = Number(price);
-  if (isNaN(numericPrice)) return "Invalid Price";
-  return `৳ ${numericPrice.toLocaleString()}${mode === "rent" ? "/mo" : ""}`;
-};
+import { useTranslation } from "react-i18next";
 
 /**
  * PropertyDetailsDialog Component
  */
 const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
-  const { t } = useTranslation(); // Initialize translation
+  const { t } = useTranslation();
 
   if (!property) {
     return null;
@@ -69,11 +61,9 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
           pb: 1,
         }}
       >
-        {/* Using property_details key for title */}
         {property.title || t("property_details")}
         <IconButton aria-label={t("close")} onClick={onClose}>
           {" "}
-          {/* Using close key for aria-label */}
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -131,7 +121,7 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
                           : "sold"
                       )
                     : ""
-                } // Translate mode
+                }
                 size="small"
                 color={property.mode === "sold" ? "default" : "primary"}
                 variant="filled"
@@ -141,14 +131,13 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
           </Grid>
           <Divider sx={{ my: 2 }} />
           <Typography variant="h6" gutterBottom>
-            Details {/* <-- Kept as is, no key */}
+            Details
           </Typography>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={6} sm={3}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <BedIcon color="action" />
                 <Typography variant="body1">
-                  {/* Applied translation */}
                   {property.bedrooms ?? "?"} {t("beds")}
                 </Typography>
               </Box>
@@ -157,7 +146,6 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <BathtubIcon color="action" />
                 <Typography variant="body1">
-                  {/* Applied translation */}
                   {property.bathrooms ?? "?"} {t("baths")}
                 </Typography>
               </Box>
@@ -166,7 +154,7 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <SquareFootIcon color="action" />
                 <Typography variant="body1">
-                  {property.area ?? "?"} sqft {/* <-- Keep unit */}
+                  {property.area ?? "?"} sqft
                 </Typography>
               </Box>
             </Grid>
@@ -174,7 +162,6 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <HomeWorkIcon color="action" />
                 <Typography variant="body1">
-                  {/* Translate property type if key exists */}
                   {property.propertyType ? t(property.propertyType) : "N/A"}
                 </Typography>
               </Box>
@@ -182,7 +169,7 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
           </Grid>
           <Divider sx={{ my: 2 }} />
           <Typography variant="h6" gutterBottom>
-            {t("description")} {/* Applied translation */}
+            {t("description")}
           </Typography>
           <Typography
             variant="body1"
@@ -190,27 +177,25 @@ const PropertyDetailsDialog = ({ open, onClose, property, mode }) => {
             sx={{ color: "text.secondary", whiteSpace: "pre-wrap" }}
           >
             {property.description || "No description available."}{" "}
-            {/* <-- Kept as is */}
           </Typography>
 
           <Divider sx={{ my: 2 }} />
           <Typography variant="h6" gutterBottom>
-            {/* Applied translation */}
             {t("contact_advertiser")}
           </Typography>
           <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
             <Button variant="contained" startIcon={<PhoneIcon />}>
-              Call Now {/* <-- Kept as is */}
+              Call Now
             </Button>
             <Button variant="outlined" startIcon={<EmailIcon />}>
-              Send Email {/* <-- Kept as is */}
+              Send Email
             </Button>
           </Box>
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} variant="outlined">
-          {t("close")} {/* Applied translation */}
+          {t("close")}
         </Button>
       </DialogActions>
     </Dialog>

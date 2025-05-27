@@ -28,7 +28,6 @@ const Step_Bangladesh_Details = ({ formData, errors, handleChange }) => {
     <Box>
       <Grid container spacing={3}>
         {/* --- Property Condition --- */}
-        {/* Marked 'required' on frontend. Ensure 'required: true' in Mongoose schema and '.notEmpty()' in backend validation. */}
         <Grid item xs={12} sm={6}>
           <FormControl fullWidth required error={!!bdErrors.propertyCondition}>
             <InputLabel id="propertyCondition-label">
@@ -65,7 +64,6 @@ const Step_Bangladesh_Details = ({ formData, errors, handleChange }) => {
           </Typography>
         </Grid>
 
-        {/* Marked 'required' on frontend. Ensure 'required: true' in Mongoose schema and '.notEmpty()' in backend validation. */}
         <Grid item xs={12} sm={6} md={4}>
           <FormControl fullWidth required error={!!bdErrors.waterSource}>
             <InputLabel id="waterSource-label">
@@ -91,7 +89,6 @@ const Step_Bangladesh_Details = ({ formData, errors, handleChange }) => {
           </FormControl>
         </Grid>
 
-        {/* Marked 'required' on frontend. Ensure 'required: true' in Mongoose schema and '.notEmpty()' in backend validation. */}
         <Grid item xs={12} sm={6} md={4}>
           <FormControl fullWidth required error={!!bdErrors.gasSource}>
             <InputLabel id="gasSource-label">

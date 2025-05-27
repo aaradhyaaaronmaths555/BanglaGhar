@@ -7,11 +7,7 @@ const Step2_Location = ({ formData, errors, handleChange }) => {
 
   return (
     <Box>
-      {/* <Typography variant="h6" gutterBottom>
-        {t("step_location", "Location Details")}
-      </Typography> */}
       <Grid container spacing={3}>
-        {/* Address Line 1 (House/Road/Village/Area) */}
         <Grid item xs={12}>
           <TextField
             required
@@ -30,40 +26,33 @@ const Step2_Location = ({ formData, errors, handleChange }) => {
               errors.addressLine1 ||
               t(
                 "address_l1_helper",
-                "e.g., House 12, Road 5, Block C OR Vill: Rampur"
+                "Enter the main address (required)"
               )
             }
           />
         </Grid>
-
-        {/* Address Line 2 (Optional) */}
         <Grid item xs={12}>
           <TextField
             id="addressLine2"
             name="addressLine2"
-            label={t("address_line_2", "Address Line 2 (Optional)")}
+            label={t(
+              "address_line_2",
+              "Address Line 2 (Optional, Flat/Unit/Floor)"
+            )}
             fullWidth
             variant="outlined"
             value={formData.addressLine2}
             onChange={handleChange}
             error={!!errors.addressLine2}
-            helperText={
-              errors.addressLine2 ||
-              t(
-                "address_l2_helper",
-                "e.g., Near XYZ School OR Post Office: ABC"
-              )
-            }
+            helperText={errors.addressLine2}
           />
         </Grid>
-
-        {/* City / Town */}
         <Grid item xs={12} sm={6}>
           <TextField
             required
             id="cityTown"
             name="cityTown"
-            label={t("city_town", "City / Town")}
+            label={t("city_town", "City/Town")}
             fullWidth
             variant="outlined"
             value={formData.cityTown}
@@ -72,14 +61,12 @@ const Step2_Location = ({ formData, errors, handleChange }) => {
             helperText={errors.cityTown}
           />
         </Grid>
-
-        {/* Upazila / Thana */}
         <Grid item xs={12} sm={6}>
           <TextField
             required
             id="upazila"
             name="upazila"
-            label={t("upazila_thana", "Upazila / Thana")}
+            label={t("upazila_thana", "Upazila/Thana")}
             fullWidth
             variant="outlined"
             value={formData.upazila}
@@ -87,10 +74,7 @@ const Step2_Location = ({ formData, errors, handleChange }) => {
             error={!!errors.upazila}
             helperText={errors.upazila}
           />
-          {/* Consider Select dropdown if you have a list of upazilas per district */}
         </Grid>
-
-        {/* District */}
         <Grid item xs={12} sm={6}>
           <TextField
             required
@@ -104,13 +88,9 @@ const Step2_Location = ({ formData, errors, handleChange }) => {
             error={!!errors.district}
             helperText={errors.district}
           />
-          {/* Consider Select dropdown if you have a list of districts */}
         </Grid>
-
-        {/* Postal Code */}
         <Grid item xs={12} sm={6}>
           <TextField
-            required
             id="postalCode"
             name="postalCode"
             label={t("postal_code", "Postal Code")}
@@ -120,12 +100,8 @@ const Step2_Location = ({ formData, errors, handleChange }) => {
             onChange={handleChange}
             error={!!errors.postalCode}
             helperText={errors.postalCode}
-            inputProps={{ maxLength: 4 }} // BD postal codes are usually 4 digits
           />
         </Grid>
-
-        {/* Removed State field */}
-        {/* Add Map integration here later if desired */}
       </Grid>
     </Box>
   );

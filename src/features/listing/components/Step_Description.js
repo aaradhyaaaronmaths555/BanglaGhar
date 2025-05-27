@@ -1,4 +1,3 @@
-// src/features/ListPropertyPage/components/Step_Description.js
 import React from "react";
 import {
   Grid,
@@ -6,10 +5,9 @@ import {
   Button,
   CircularProgress,
   Box,
-  Typography,
   FormHelperText,
 } from "@mui/material";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh"; // AI Icon
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { useTranslation } from "react-i18next";
 
 const Step_Description = ({
@@ -23,20 +21,17 @@ const Step_Description = ({
 
   return (
     <Box>
-      {/* <Typography variant="h6" gutterBottom>
-        {t("step_description", "Property Description")}
-      </Typography> */}
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <TextField
             id="description"
-            name="description" // Matches formData key
+            name="description"
             label={t("property_description", "Description")}
             fullWidth
             multiline
-            rows={6} // Increased rows for better editing
+            rows={6}
             variant="outlined"
-            value={formData.description || ""} // Ensure controlled component
+            value={formData.description || ""}
             onChange={handleChange}
             error={!!errors.description}
             helperText={
@@ -51,7 +46,7 @@ const Step_Description = ({
             <Button
               variant="outlined"
               size="small"
-              onClick={generateDescription} // Trigger AI generation
+              onClick={generateDescription}
               disabled={loadingAI}
               startIcon={
                 loadingAI ? <CircularProgress size={16} /> : <AutoFixHighIcon />
@@ -63,7 +58,6 @@ const Step_Description = ({
                 : t("generate_ai", "Generate with AI")}
             </Button>
           </Box>
-          {/* Optionally show AI error specifically here if needed */}
           {errors.description?.includes("Failed to generate") && (
             <FormHelperText error sx={{ mt: 1 }}>
               {errors.description}

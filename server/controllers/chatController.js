@@ -1,11 +1,9 @@
-// server/controllers/chatController.js
-const Ably = require("ably"); //
-const Conversation = require("../models/Conversation"); //
-const Message = require("../models/Message"); //
-const UserProfile = require("../models/UserProfile"); //
-const mongoose = require("mongoose"); //
+const Ably = require("ably");
+const Conversation = require("../models/Conversation");
+const Message = require("../models/Message");
+const UserProfile = require("../models/UserProfile");
+const mongoose = require("mongoose");
 
-// generateAblyToken function remains the same ...
 exports.generateAblyToken = async (req, res) => {
   if (!process.env.ABLY_API_KEY) {
     console.error("[Ably Auth Error] ABLY_API_KEY not set.");
@@ -46,7 +44,6 @@ exports.generateAblyToken = async (req, res) => {
   }
 };
 
-// initiateOrGetConversation function remains the same ...
 exports.initiateOrGetConversation = async (req, res) => {
   if (!req.userProfile || !req.userProfile._id) {
     return res
@@ -114,25 +111,22 @@ exports.initiateOrGetConversation = async (req, res) => {
 
 exports.postMessageToConversation = async (req, res) => {
   if (!req.userProfile || !req.userProfile._id) {
-    //
     return res
       .status(401)
-      .json({ message: "User profile not found. Authentication required." }); //
+      .json({ message: "User profile not found. Authentication required." });
   }
 
-  const senderId = req.userProfile._id; //
+  const senderId = req.userProfile._id;
   const senderDisplayName =
     req.userProfile.displayName || req.userProfile.email; // For notification
-  const { conversationId } = req.params; //
-  const { text } = req.body; //
+  const { conversationId } = req.params;
+  const { text } = req.body;
 
   if (!text || text.trim() === "") {
-    //
-    return res.status(400).json({ message: "Message text cannot be empty." }); //
+    return res.status(400).json({ message: "Message text cannot be empty." });
   }
   if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-    //
-    return res.status(400).json({ message: "Invalid conversation ID format." }); //
+    return res.status(400).json({ message: "Invalid conversation ID format." });
   }
 
   try {
@@ -141,8 +135,7 @@ exports.postMessageToConversation = async (req, res) => {
       "_id cognitoSub"
     ); // Populate participants to get their IDs for notifications //
     if (!conversation) {
-      //
-      return res.status(404).json({ message: "Conversation not found." }); //
+      return res.status(404).json({ message: "Conversation not found." });
     }
 
     if (
@@ -150,23 +143,21 @@ exports.postMessageToConversation = async (req, res) => {
         .map((p) => p._id.toString())
         .includes(senderId.toString())
     ) {
-      //
       return res
         .status(403)
-        .json({ message: "User is not a participant of this conversation." }); //
+        .json({ message: "User is not a participant of this conversation." });
     }
 
     const message = new Message({
-      //
-      conversationId: conversation._id, //
-      senderId: senderId, //
-      text: text.trim(), //
+      conversationId: conversation._id,
+      senderId: senderId,
+      text: text.trim(),
     });
 
-    await message.save(); //
+    await message.save();
 
-    conversation.lastMessage = message._id; //
-    await conversation.save(); //
+    conversation.lastMessage = message._id;
+    await conversation.save();
 
     const populatedMessage = await Message.findById(message._id) //
       .populate({
@@ -218,16 +209,15 @@ exports.postMessageToConversation = async (req, res) => {
     }
     // --- End Notification Publishing ---
 
-    res.status(201).json(populatedMessage); //
+    res.status(201).json(populatedMessage);
   } catch (error) {
-    console.error("Error posting message:", error); //
+    console.error("Error posting message:", error);
     res
       .status(500)
-      .json({ message: "Server error posting message.", error: error.message }); //
+      .json({ message: "Server error posting message.", error: error.message });
   }
 };
 
-// getConversationsForUser function remains the same ...
 exports.getConversationsForUser = async (req, res) => {
   if (!req.userProfile || !req.userProfile._id) {
     return res
@@ -264,7 +254,6 @@ exports.getConversationsForUser = async (req, res) => {
   }
 };
 
-// getMessagesInConversation function remains the same ...
 exports.getMessagesInConversation = async (req, res) => {
   if (!req.userProfile || !req.userProfile._id) {
     return res

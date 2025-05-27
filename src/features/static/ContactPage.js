@@ -23,7 +23,6 @@ import ContactForm from "./components/ContactForm";
 
 // --- Styled Components ---
 const WavePattern = styled(Box)(({ theme }) => ({
-  // ... (styling kept as is)
   position: "absolute",
   bottom: 0,
   left: 0,
@@ -37,7 +36,6 @@ const WavePattern = styled(Box)(({ theme }) => ({
 }));
 
 const MapContainer = styled(Box)(({ theme }) => ({
-  // ... (styling kept as is)
   borderRadius: "12px",
   overflow: "hidden",
   boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
@@ -46,7 +44,6 @@ const MapContainer = styled(Box)(({ theme }) => ({
 }));
 
 const FAQCard = styled(Card)(({ theme }) => ({
-  // ... (styling kept as is)
   height: "100%",
   transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
   "&:hover": {

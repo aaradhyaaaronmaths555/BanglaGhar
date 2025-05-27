@@ -3,23 +3,22 @@ import { Box, Typography, Grid, Paper } from "@mui/material";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import { styled } from "@mui/material/styles";
-import { useTranslation } from "react-i18next"; // Import useTranslation
+import { useTranslation } from "react-i18next";
 
 const AnimatedBox = styled(Box)(({ theme }) => ({
-  // ... (styling kept as is)
   transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
   "&:hover": {
     transform: "translateY(-5px)",
     boxShadow: theme.shadows[4],
   },
-  height: "100%", // Ensure boxes have same height if needed
+  height: "100%",
 }));
 
 /**
  * MissionSection Component
  */
 const MissionSection = () => {
-  const { t } = useTranslation(); // Initialize translation
+  const { t } = useTranslation();
 
   return (
     <Box sx={{ py: 6 }}>
@@ -34,11 +33,10 @@ const MissionSection = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <HandshakeIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
                 <Typography variant="h5" component="h3" fontWeight={600}>
-                  {t("mission_section.mission_title")} {/* <-- Kept as is, no key found */}
+                  {t("mission_section.mission_title")}
                 </Typography>
               </Box>
               <Typography variant="body1" color="text.secondary">
-                {/* Kept as is, no key found */}
                 {t("mission_section.mission_text")}
               </Typography>
             </Paper>
@@ -58,7 +56,6 @@ const MissionSection = () => {
                 </Typography>
               </Box>
               <Typography variant="body1" color="text.secondary">
-                {/* Kept as is, no key found */}
                 {t("mission_section.vision_text")}
               </Typography>
             </Paper>
